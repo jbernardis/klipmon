@@ -1,0 +1,91 @@
+{
+  "printers": {
+    "voron": {
+      "ip": "voron.local",
+      "port": 7125,
+      "gcode": {
+        "showmoves": true,
+        "showprevious": true,
+        "showretractions": true,
+        "showrevretractions": true,
+        "showprintedonly": false,
+        "buildarea": [300, 300],
+        "scale": 2
+      },
+      "presets": {
+        "PLA": [70, 215],
+        "ABS": [105, 235]
+      },
+      "heaters": {
+        "extruder": {
+          "tempcolor": [253, 127, 106]
+        },
+        "heater_bed": {
+          "tempcolor": [115, 251, 253]
+        }
+      },
+      "sensors": {
+        "temperature_sensor raspberry_pi": {
+          "tempcolor": [235, 24, 14]
+        },
+        "temperature_sensor mcu_octopus": {
+          "tempcolor": [135, 72, 235]
+        }
+
+      },
+      "fans": {
+        "fan": {
+        },
+        "heater_fan hotend_fan": {
+        },
+        "controller_fan controller_fan": {
+        }
+      }
+    },
+    "dbot": {
+      "ip": "dbot.local",
+      "port": 7125,
+      "gcode": {
+        "showmoves": true,
+        "showprevious": true,
+        "showretractions": true,
+        "showrevretractions": true,
+        "showprintedonly": false,
+        "buildarea": [200, 200],
+        "scale": 3
+      },
+      "presets": {
+        "PLA": [70, 215],
+        "ABS": [105, 235]
+      },
+      "heaters": {
+        "extruder": {
+          "tempcolor": [253, 127, 106]
+        },
+        "heater_bed": {
+          "tempcolor": [115, 251, 253]
+        }
+      },
+      "sensors": {
+        "temperature_sensor raspberry_pi": {
+          "tempcolor": [235, 24, 14]
+        },
+        "temperature_sensor mcu_octopus": {
+          "tempcolor": [135, 72, 235]
+        }
+
+      },
+      "fans": {
+        "fan": {
+
+        },
+        "heater_fan hotend_fan": {
+
+        },
+        "controller_fan controller_fan": {
+
+        }
+      }
+    }
+  }
+}
