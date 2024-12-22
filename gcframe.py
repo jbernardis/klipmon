@@ -20,11 +20,13 @@ dk_Gray = wx.Colour(224, 224, 224)
 lt_Gray = wx.Colour(128, 128, 128)
 black = wx.Colour(0, 0, 0)
 
+BTNSZ = (100, 30)
+
 
 class GcFrame (wx.StaticBox):
-	def __init__(self, parent, pname, settings):
+	def __init__(self, parent, pname, psettings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
-		self.SetBackgroundColour(wx.Colour(255, 255, 255))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.titleText = "  G Code Viewer  "
 		self.SetLabel(self.titleText)
@@ -32,9 +34,8 @@ class GcFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.settings = settings
-		self.psettings = self.settings.GetPrinterSettings(self.pname)
-		self.gcodesettings = self.settings.GetPrinterGCodeSettings(self.pname)
+		self.psettings = psettings
+		self.gcodesettings = self.psettings["gcode"]
 		self.moonraker = None
 		self.filename = None
 
@@ -52,7 +53,7 @@ class GcFrame (wx.StaticBox):
 		self.showrevretractions = self.gcodesettings["showrevretractions"]
 		self.showprintedonly = self.gcodesettings["showprintedonly"]
 
-		self.gcPanel = GcPanel(self, pname, self.settings)
+		self.gcPanel = GcPanel(self, pname, self.psettings)
 		ht = self.gcPanel.GetSize()[1]
 		self.slLayer = wx.Slider(
 			self, wx.ID_ANY, 0, 0, 100, size=(-1, ht),
@@ -67,17 +68,20 @@ class GcFrame (wx.StaticBox):
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(20)
-		self.bOpenPrinter = wx.Button(self, wx.ID_ANY, "Printer File")
+		self.bOpenPrinter = wx.Button(self, wx.ID_ANY, "Printer File", size=BTNSZ)
+		self.bOpenPrinter.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.bOpenPrinter.Enable(False)
 		self.Bind(wx.EVT_BUTTON, self.onBOpenPrinter, self.bOpenPrinter)
 		hsz.Add(self.bOpenPrinter)
 		hsz.AddSpacer(20)
-		self.bOpenCurrent = wx.Button(self, wx.ID_ANY, "Current File")
+		self.bOpenCurrent = wx.Button(self, wx.ID_ANY, "Current File", size=BTNSZ)
+		self.bOpenCurrent.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.bOpenCurrent.Enable(False)
 		self.Bind(wx.EVT_BUTTON, self.onBOpenCurrent, self.bOpenCurrent)
 		hsz.Add(self.bOpenCurrent)
 		hsz.AddSpacer(20)
-		self.bOpenLocal = wx.Button(self, wx.ID_ANY, "Local File")
+		self.bOpenLocal = wx.Button(self, wx.ID_ANY, "Local File", size=BTNSZ)
+		self.bOpenLocal.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBOpenLocal, self.bOpenLocal)
 		hsz.Add(self.bOpenLocal)
 		hsz.AddSpacer(20)
@@ -86,6 +90,7 @@ class GcFrame (wx.StaticBox):
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(20)
 		hsz.Add(self.gcPanel)
+		hsz.AddSpacer(10)
 		hsz.Add(self.slLayer)
 		hsz.AddSpacer(20)
 
@@ -195,16 +200,29 @@ class GcFrame (wx.StaticBox):
 		self.bOpenCurrent.Enable(self.moonraker is not None and self.activeFn is not None)
 
 	def onBOpenPrinter(self, evt):
-		fl = self.moonraker.FilesList()
+		try:
+			fl = self.moonraker.FilesList()
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
 		fnlist = [x["path"] for x in fl]
 
 		dlg = wx.SingleChoiceDialog(self, 'Choose a GCode File', 'Printer Files', fnlist, wx.CHOICEDLG_STYLE)
 
 		if dlg.ShowModal() == wx.ID_OK:
 			fn = dlg.GetStringSelection()
-			gcl = self.moonraker.FileDownload(fn).text.split("\n")
-			gcode = GCode(gcl, self.pname, self.settings)
-			print("calling from open printer %s" % str(gcode))
+			try:
+				gcl = self.moonraker.FileDownload(fn).text.split("\n")
+			except MoonrakerException as e:
+				dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+				dlg.ShowModal()
+				dlg.Destroy()
+				return
+
+			gcode = GCode(gcl, self.pname, self.psettings)
 			self.loadGCode(gcode, False)
 			self.setTitle(fn, "Printer")
 
@@ -218,9 +236,15 @@ class GcFrame (wx.StaticBox):
 	def OpenCurrent(self):
 		if self.activeFn is None:
 			return
-		gcl = self.moonraker.FileDownload(self.activeFn).text.split("\n")
-		gcode = GCode(gcl, self.pname, self.settings)
-		print("calling from open current %s" % str(gcode))
+		try:
+			gcl = self.moonraker.FileDownload(self.activeFn).text.split("\n")
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		gcode = GCode(gcl, self.pname, self.psettings)
 		self.loadGCode(gcode, True)
 		self.setTitle(self.activeFn, "Current")
 		self.cbFollowPrint.Enable(True)
@@ -245,8 +269,7 @@ class GcFrame (wx.StaticBox):
 		with open(path) as x:
 			gcl = x.readlines()
 
-		gcode = GCode(gcl, self.pname, self.settings)
-		print("calling from open local %s" % str(gcode))
+		gcode = GCode(gcl, self.pname, self.psettings)
 		self.loadGCode(gcode, False)
 		self.setTitle(os.path.basename(path), "Local")
 
@@ -296,12 +319,11 @@ class GcFrame (wx.StaticBox):
 			print(self.slLayer.GetTickFreq())
 
 class GcPanel (wx.Panel):
-	def __init__(self, parent, pname, settings):
+	def __init__(self, parent, pname, psettings):
 		self.parent = parent
 		self.pname = pname
-		self.settings = settings
-		self.psettings = self.settings.GetPrinterSettings(self.pname)
-		self.gcodesettings = self.settings.GetPrinterGCodeSettings(self.pname)
+		self.psettings = psettings
+		self.gcodesettings = self.psettings["gcode"]
 
 		self.printPosition = 0
 

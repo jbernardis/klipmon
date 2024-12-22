@@ -153,7 +153,7 @@ def get_float(paramStr, which, last, relativeValue=False):
 		return last
 
 class GCode:
-	def __init__(self, gc, pname, settings):
+	def __init__(self, gc, pname, psettings):
 		self.gcode = [g for g in gc]
 
 		self.nExtr = 1 # settings.getSetting("nExtr", pname, 1)

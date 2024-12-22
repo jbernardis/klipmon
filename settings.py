@@ -14,6 +14,12 @@ class Settings:
 		with open(self.inifile, "r") as jfp:
 			self.data = json.load(jfp)
 
+	def GetSetting(self, name):
+		try:
+			return self.data[name]
+		except KeyError:
+			return None
+
 	def GetPrinters(self):
 		return sorted(list(self.data["printers"].keys()))
 

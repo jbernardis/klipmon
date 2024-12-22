@@ -108,9 +108,9 @@ class Heater:
 
 
 class ThermalFrame (wx.StaticBox):
-	def __init__(self, parent, pname, settings):
+	def __init__(self, parent, pname, psettings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
-		self.SetBackgroundColour(wx.Colour(255, 255, 255))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.titleText = "  Thermals  "
 		self.SetLabel(self.titleText)
@@ -121,8 +121,7 @@ class ThermalFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.settings = settings
-		self.psettings = self.settings.GetPrinterSettings(self.pname)
+		self.psettings = psettings
 		self.moonraker = None
 
 		self.sensors = []
@@ -206,9 +205,11 @@ class ThermalFrame (wx.StaticBox):
 
 class ThermList (wx.ListCtrl):
 	def __init__(self, parent):
-		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=(470, 200),
+		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=(470, 145),
 				style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES | wx.LC_SINGLE_SEL)
-		self.SetFont(wx.Font(wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
+		self.SetForegroundColour(wx.Colour(0, 0, 0))
+		self.SetFont(wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial"))
 		self.moonraker = None
 		self.parent = parent
 		self.sensors = []
@@ -228,15 +229,10 @@ class ThermList (wx.ListCtrl):
 		self.SetItemCount(0)
 
 		self.attr1 = wx.ItemAttr()
-		self.attr1.SetBackgroundColour(wx.Colour(156, 252, 126))
+		self.attr1.SetBackgroundColour(wx.Colour(8, 149, 235))
 
 		self.attr2 = wx.ItemAttr()
-		self.attr2.SetBackgroundColour(wx.Colour(255, 255, 255))
-
-		# self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
-		# self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
-		# self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnItemDeselected)
-		# self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnItemRughtClicked)
+		self.attr2.SetBackgroundColour(wx.Colour(196, 196, 196))
 
 	def LoadData(self, sensors, heaters):
 		self.sensors = sensors

@@ -2,6 +2,7 @@ import wx
 import wx.lib.newevent
 import json
 import os
+from subprocess import Popen
 
 from gcframe import GcFrame
 from flframe import FlFrame
@@ -19,11 +20,11 @@ from moonraker import Moonraker, MoonrakerException
 BTNSZ = (120, 50)
 
 
-class PrinterDlg(wx.Dialog):
-	def __init__(self, parent, ip, port, name, settings, cbmap):
-		wx.Dialog.__init__(self, parent, wx.ID_ANY, name)
-		# TODO - add menu - temperature presets/off, jogging, shutdown/restart, video
-		# TODO - add a fans frame
+class PrinterFrame(wx.Frame):
+	def __init__(self, name, settings, cbmap):
+		wx.Frame.__init__(self, None, title="Klipper Monitor - %s" % name)
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
+		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.closing = False
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 
@@ -36,6 +37,9 @@ class PrinterDlg(wx.Dialog):
 		self.psettings = self.settings.GetPrinterSettings(name)
 		self.tempGraph = None
 
+		self.prMplayer = None
+		self.mplayer = self.settings.GetSetting("mplayer")
+
 		self.fanList = []
 		self.heaterList = []
 		self.sensorList = []
@@ -43,24 +47,24 @@ class PrinterDlg(wx.Dialog):
 		self.timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self.onTimer, self.timer)
 
-		self.ip = ip
-		self.port = port
+		self.ip = self.psettings["ip"]
+		self.port = str(self.psettings["port"])
 		self.name = name
 		self.closer = cbmap["closer"]
 		self.statusUpdater = cbmap["status"]
 		self.notifyInitialized = cbmap["init"]
-		self.baseUrl = "http://%s" % ip
+		self.baseUrl = "http://%s" % self.ip
 
 		self.Bind(EVT_WSDELIVERY, self.onWSDeliveryEvent)
 		self.Bind(EVT_WSDISCONNECT, self.onWSDisconnectEvent)
 		self.Bind(EVT_WSCONNECT, self.onWSConnectEvent)
 		self.Bind(EVT_WSERROR, self.onWSErrorEvent)
 
-		self.statFrame = StatFrame(self, self.name, self.settings)
-		self.gcFrame = GcFrame(self, self.name, self.settings)
-		self.flFrame = FlFrame(self, self.name, self.settings)
-		self.thermFrame = ThermalFrame(self, self.name, self.settings)
-		self.tempGraph = TempGraph(self, self.name, self.settings)
+		self.statFrame = StatFrame(self, self.name, self.psettings)
+		self.gcFrame = GcFrame(self, self.name, self.psettings)
+		self.flFrame = FlFrame(self, self.name, self.psettings)
+		self.thermFrame = ThermalFrame(self, self.name, self.psettings)
+		self.tempGraph = TempGraph(self, self.name, self.psettings)
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(20)
@@ -68,16 +72,20 @@ class PrinterDlg(wx.Dialog):
 		btnsz.AddSpacer(20)
 
 		self.bThermals = wx.Button(self, wx.ID_ANY, "Thermals", size=BTNSZ)
+		self.bThermals.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBThermals, self.bThermals)
 		btnsz.Add(self.bThermals)
 		btnsz.AddSpacer(20)
 
 		self.bJogging = wx.Button(self, wx.ID_ANY, "Jogging", size=BTNSZ)
+		self.bJogging.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBJogging, self.bJogging)
 		btnsz.Add(self.bJogging)
 		btnsz.AddSpacer(20)
 
 		self.bVideo = wx.Button(self, wx.ID_ANY, "Video", size=BTNSZ)
+		self.bVideo.SetBackgroundColour(wx.Colour(196, 196, 196))
+		self.bVideo.Enable(self.mplayer is  not None)
 		self.Bind(wx.EVT_BUTTON, self.onBVideo, self.bVideo)
 		btnsz.Add(self.bVideo)
 
@@ -90,8 +98,10 @@ class PrinterDlg(wx.Dialog):
 		vsz2.Add(self.statFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		vsz2.AddSpacer(10)
 		vsz2.Add(self.thermFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		vsz2.AddSpacer(10)
 		vsz2.Add(self.tempGraph, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		hsz.Add(vsz2)
+		hsz.AddSpacer(10)
 		hsz.Add(self.gcFrame)
 		hsz.AddSpacer(20)
 		hsz.Add(self.flFrame)
@@ -103,6 +113,8 @@ class PrinterDlg(wx.Dialog):
 		self.SetSizer(vsz)
 		self.Layout()
 		self.Fit()
+
+		wx.CallAfter(self.Initialize)
 
 	def Initialize(self):
 		self.initialized = False
@@ -197,7 +209,7 @@ class PrinterDlg(wx.Dialog):
 		except MoonrakerException as e:
 			self.statusUpdater(e.message)
 			self.close()
-			return
+			raise
 
 		try:
 			kstat = si["result"]["klippy_state"]
@@ -210,7 +222,7 @@ class PrinterDlg(wx.Dialog):
 			self.statusUpdater("klipper ready")
 			self.SubscribeToPrinterObjects()
 		elif kstat in ["shutdown", "error"]:
-			# TODO - get better error message here
+			# get better error message here
 			self.statusUpdater("Klipper status: %s.  Unable to proceed" % kstat)
 			self.close()
 		elif kstat == "startup":
@@ -227,20 +239,41 @@ class PrinterDlg(wx.Dialog):
 
 		subList = self.fanList + self.heaterList + self.sensorList + ["toolhead", "print_stats"]
 		self.statusUpdater("subscribing for following objects: %s" % ", ".join(subList))
-		sub = self.moonraker.PrinterObjectSubscribe(subList, self.connectionId)
+		try:
+			sub = self.moonraker.PrinterObjectSubscribe(subList, self.connectionId)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			self.notifyInitialized(False, self.name)
+			return
 
 		status = sub["result"]["status"]
 		for obj in subList:
 			self.objectStatus[obj] = status[obj].copy()
+		try:
+			temps = self.moonraker.PrinterCachedTemps()
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			self.notifyInitialized(False, self.name)
+			return
 
-		self.notifyInitialized(True, self.name)
-		temps = self.moonraker.PrinterCachedTemps()
 		self.thermFrame.SetHeaters(self.heaterList)
 		self.thermFrame.SetSensors(self.sensorList)
 		self.thermFrame.SetInitialValues(temps)
 		self.tempGraph.initPlot(self.thermFrame.GetSensorMap(), self.thermFrame.GetHeaterMap())
 
-		stat = self.moonraker.PrinterObjectStatus(subList)
+		try:
+			stat = self.moonraker.PrinterObjectStatus(subList)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			self.notifyInitialized(False, self.name)
+			return
+
 		ivals = stat["result"]["status"]
 
 		self.gcFrame.SetMoonraker(self.moonraker)
@@ -251,14 +284,19 @@ class PrinterDlg(wx.Dialog):
 		self.flFrame.SetInitialValues(ivals)
 		self.statFrame.SetInitialValues(ivals)
 
+		self.notifyInitialized(True, self.name)
 		self.timer.Start(1000)
 
 	def onTimer(self, evt):
+		if self.prMplayer is not None:
+			if self.prMplayer.poll() is not None:
+				self.prMplayer = None
+
 		try:
 			js = self.moonraker.PrinterJobStatus()
 
-		except MoonrakerException:
-			dlg = wx.MessageDialog(self, "Unable to retrieve job status", "Moonraker error", wx.OK | wx.ICON_ERROR)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
 			dlg.Destroy()
 			return
@@ -332,12 +370,15 @@ class PrinterDlg(wx.Dialog):
 		dlg.Show()
 
 	def onBJogging(self, evt):
-		# TODO jogging - only if not printing
 		print("jogging")
 
 	def onBVideo(self, evt):
-		# TODO video
-		print("video")
+		if self.prMplayer is None:
+			url = "http://" + self.ip + "/webcam?action=stream"
+			self.prMplayer = Popen([self.mplayer, "-loglevel", "quiet", url])
+		else:
+			self.prMplayer.kill()
+			self.prMplayer = None
 
 	def onClose(self, evt):
 		self.close()
@@ -356,6 +397,12 @@ class PrinterDlg(wx.Dialog):
 			self.moonraker.close()
 		except:
 			pass
+
+		if self.prMplayer is not None:
+			try:
+				self.prMplayer.kill()
+			except:
+				pass
 
 		self.closer(self.name)
 		self.Destroy()

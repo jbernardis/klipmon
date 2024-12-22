@@ -1,5 +1,6 @@
 import numpy
 import matplotlib
+import matplotlib.pyplot as plt
 import pylab
 
 matplotlib.use('WXAgg')
@@ -12,12 +13,11 @@ from thermframe import DATAPOINTS
 
 
 class TempGraph(wx.Panel):
-    def __init__(self, parent, pname, settings):
+    def __init__(self, parent, pname, psettings):
         wx.Panel.__init__(self, parent, size=(600, 400))
         self.parent = parent
         self.pname = pname
-        self.settings = settings
-        self.psettings = self.settings.GetPrinterSettings(self.pname)
+        self.psettings = psettings
         self.sensors = None
         self.heaters = None
         self.heater_actual = {}
@@ -26,12 +26,13 @@ class TempGraph(wx.Panel):
         self.plotColors = {}
 
         self.dpi = 100
-        self.figure = Figure((6.0, 4.0), dpi=self.dpi)
+        self.figure = Figure((6.0, 4.0), dpi=self.dpi, facecolor=(0.4,0.4,0.4))
         self.axes = self.figure.add_subplot(111)
+        self.axes.set_title("Temperatures", size=12)
 
         self.canvas = FigureCanvas(self, wx.ID_ANY, self.figure)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.canvas) #, 1, wx.LEFT | wx.TOP | wx.GROW)
+        self.sizer.Add(self.canvas)
         self.SetSizer(self.sizer)
         self.Layout()
         self.Fit()
@@ -40,8 +41,6 @@ class TempGraph(wx.Panel):
     def initPlot(self, sensors, heaters):
         self.sensors = sensors
         self.heaters = heaters
-        print(str(heaters))
-        print(str(list(heaters.keys())))
         self.plotColors = {}
         for sn in self.sensors:
             self.plotColors[sn] = self.psettings["sensors"][sn]["tempcolor"]

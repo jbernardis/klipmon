@@ -26,10 +26,9 @@ def formatTime(ss):
 
 
 class StatFrame (wx.StaticBox):
-	def __init__(self, parent, pname, settings):
-		# TODO pause/resume cancel buttons
+	def __init__(self, parent, pname, psettings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
-		self.SetBackgroundColour(wx.Colour(255, 255, 255))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.titleText = "  Printer Status  "
 		self.SetLabel(self.titleText)
@@ -53,8 +52,7 @@ class StatFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.settings = settings
-		self.psettings = self.settings.GetPrinterSettings(self.pname)
+		self.psettings = psettings
 		self.moonraker = None
 
 		self.emptyBmp = MakeEmpty()
@@ -209,6 +207,16 @@ class StatFrame (wx.StaticBox):
 		hsz.Add(metasz)
 
 		vsz.Add(hsz)
+		vsz.AddSpacer(10)
+
+		hsz = wx.BoxSizer(wx.HORIZONTAL)
+		self.Gauge = wx.Gauge(self, wx.ID_ANY, range=100, size=(300, 20), style = wx.GA_HORIZONTAL + wx.GA_TEXT)
+		self.Gauge.SetValue(0)
+		hsz.Add(self.Gauge)
+		hsz.AddSpacer(10)
+		self.Percent = wx.StaticText(self, wx.ID_ANY, "0%")
+		hsz.Add(self.Percent)
+		vsz.Add(hsz, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
 		vsz.AddSpacer(20)
 
@@ -373,8 +381,13 @@ class StatFrame (wx.StaticBox):
 	def setJobStatus(self, active, fn, pos, prog):
 		self.jobStatus = active
 		self.fpos = pos
-		# TODO - display this progress as a circular chart
 		self.progress = prog
+		self.ShowProgress()
+
+	def ShowProgress(self):
+		pct = self.progress * 100.0
+		self.Gauge.SetValue(round(pct))
+		self.Percent.SetLabel("%5.2f%%" % pct)
 
 	def UpdateStatus(self, jmsg):
 		if "toolhead" in jmsg:

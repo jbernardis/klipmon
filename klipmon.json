@@ -1,4 +1,5 @@
 {
+  "mplayer": "C:/Users/jeff/Programs/ffmpeg/bin/ffplay.exe",
   "printers": {
     "voron": {
       "ip": "voron.local",

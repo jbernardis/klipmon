@@ -5,6 +5,14 @@ import json
 from mrclient import Client
 
 
+def getErrorMessage(p, operation):
+	j = p.json()
+	try:
+		return j["error"]["message"] + " during " + operation
+	except KeyError:
+		return "HTTP Error %d during %s" % (p.status_code, operation)
+
+
 class MoonrakerException(Exception):
 	def __init__(self, message):
 		Exception.__init__(self)
@@ -104,7 +112,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send server info request")
 
 		if r.status_code >= 400:
-			raise MoonrakerException("HTTP Error %d on server info" % r.status_code)
+			raise MoonrakerException(getErrorMessage(r, "server info"))
 
 		try:
 			return r.json()
@@ -118,7 +126,7 @@ class Moonraker:
 			return False, "Unable to send list roots request"
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on list roots" % r.status_code
+			msg = getErrorMessage(r, "server files roots")
 			return False, msg
 
 		try:
@@ -134,7 +142,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to establish connection with printer %s at address %s" % (self.name, self.ipString))
 
 		if r.status_code >= 400:
-			raise MoonrakerException("HTTP Error %d on list files" % r.status_code)
+			raise MoonrakerException(getErrorMessage(r, "server files list"))
 
 		try:
 			j = r.json()
@@ -154,7 +162,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to establish connection with printer %s at address %s" % (self.name, self.ipString))
 
 		if r.status_code >= 400:
-			raise MoonrakerException("HTTP Error %d on get file metadata" % r.status_code)
+			raise MoonrakerException(getErrorMessage(r, "server files metadata"))
 
 		try:
 			j = r.json()
@@ -173,8 +181,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send printer object list request")
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on printer object list" % r.status_code
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "printer objects list"))
 
 		try:
 			j = r.json()
@@ -194,8 +201,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send printer object %s query request" % object)
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on printer object %s query" % (r.status_code, object)
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "printer objects query"))
 
 		try:
 			return r.json()
@@ -213,8 +219,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send printer object %s subscribe request" % object)
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on printer object %s subscribe" % (r.status_code, object)
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "printer objects subscribe"))
 
 		try:
 			return r.json()
@@ -229,8 +234,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send server temperature_store request")
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on server temperature_stiore request"
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "server temperature_store"))
 
 		try:
 			return r.json()
@@ -244,8 +248,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send print start request")
 
 		if p.status_code >= 400:
-			msg = "HTTP Error %d on print file" % p.status_code
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(p, "printer print start"))
 
 		try:
 			j = p.json()
@@ -271,14 +274,7 @@ class Moonraker:
 		print(p.url)
 
 		if p.status_code >= 400:
-			j = p.json()
-			try:
-				msg = j["error"]["message"]
-			except KeyError:
-				msg = "HTTP Error %d on printer send gcode" % p.status_code
-
-			print(msg)
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(p, "printer gcode script"))
 
 		try:
 			j = p.json()
@@ -303,8 +299,7 @@ class Moonraker:
 			raise MoonrakerException("Unable to send printer job status request")
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on printer job status" % r.status_code
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "printer objects query"))
 
 		try:
 			return r.json()
@@ -314,41 +309,51 @@ class Moonraker:
 	def FileDownload(self, filename, root="gcodes"):
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/server/files/" + root + "/" + filename
-			r = self.session.get(url, timeout=0.7)
+			r = self.session.get(url, timeout=20)
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send file download request")
 
 		if r.status_code >= 400:
-			msg = "HTTP Error %d on file download" % r.status_code
-			raise MoonrakerException(msg)
+			raise MoonrakerException(getErrorMessage(r, "server files download"))
 
 		return r
 
-	def FileUpload(self, filename, fp, root="gcodes"):
-		headers = {
-			'filename': filename,
-			'name': "file",
-			"root": root,
-		}
+	def FileUpload(self, filename, filep, root="gcodes"):
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/server/files/upload"
-			files={filename: fp}
-			r = requests.post(url, files=files, timeout=4.0)
+			files={"file": filep, "filename": filename, "root": root}
+			r = requests.post(url, files=files, timeout=20.0)
+			print(r.url)
+			print(r.headers)
+			print(r.content)
+			print(r.text, flush=True)
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send post request is rr server running?")
 
 		if r.status_code >= 400:
-			raise MoonrakerException("HTTP Error %d" % r.status_code)
+			raise MoonrakerException(getErrorMessage(r, "printer files upload"))
+
+		return True
+
+	def FileDelete(self, filename, root="gcodes"):
+		try:
+			url = "http://" + self.ip + ":" + self.port + "/server/files/" + root + "/" + filename
+			r = requests.delete(url)
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send delete request is rr server running?")
+
+		if r.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(r, "server files delete"))
 
 		return True
 
 if __name__ == '__main__':
 	p = Moonraker("dbot.local", "7125", "dbot")
 
-	rc, resp = p.ServerInfo()
-	print("response code: %s" % rc)
-	print("response value:")
-	pprint.pprint(resp)
+	# rc, resp = p.ServerInfo()
+	# print("response code: %s" % rc)
+	# print("response value:")
+	# pprint.pprint(resp)
 
 	# rc, resp = p.RootsList()
 	# print("response code: %s" % rc)

@@ -1,4 +1,7 @@
 import wx
+
+from moonraker import MoonrakerException
+
 BTNSZ = (120, 50)
 
 
@@ -39,8 +42,20 @@ class ThermalDlg(wx.Dialog):
 	def onBAllOff(self, evt):
 		bedCmd  = "M140S0"
 		extrCmd = "M104S0"
-		self.moonraker.SendGCode(bedCmd)
-		self.moonraker.SendGCode(extrCmd)
+		try:
+			self.moonraker.SendGCode(bedCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
+		try:
+			self.moonraker.SendGCode(extrCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
 		self.Destroy()
 
 	def onPreset(self, evt):
@@ -54,8 +69,20 @@ class ThermalDlg(wx.Dialog):
 
 		bedCmd  = "M140S%d" % temps[0]
 		extrCmd = "M104S%d" % temps[1]
-		self.moonraker.SendGCode(bedCmd)
-		self.moonraker.SendGCode(extrCmd)
+		try:
+			self.moonraker.SendGCode(bedCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
+		try:
+			self.moonraker.SendGCode(extrCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
 		self.Destroy()
 
 	def onClose(self, evt):

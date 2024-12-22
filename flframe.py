@@ -1,21 +1,21 @@
-import wx, math
-import json
+import wx
+import os
 import io
 
 from moonraker import MoonrakerException
-from gcode import GCode, MOVE_MOVE, MOVE_PRINT, MOVE_EXTRUDE, MOVE_RETRACT
 
 MENU_PRINT = 1001
 MENU_PREHEAT = 1002
 MENU_DOWNLOAD = 1003
 MENU_REMOVE = 1004
 
+BTNSZ = (100, 30)
 
 
 class FlFrame (wx.StaticBox):
-	def __init__(self, parent, pname, settings):
+	def __init__(self, parent, pname, psettings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
-		self.SetBackgroundColour(wx.Colour(255, 255, 255))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.titleText = "  File List  "
 		self.SetLabel(self.titleText)
@@ -26,8 +26,7 @@ class FlFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.settings = settings
-		self.psettings = self.settings.GetPrinterSettings(self.pname)
+		self.psettings = psettings
 		self.moonraker = None
 		self.flMeta = {}
 		self.fnList = []
@@ -95,6 +94,12 @@ class FlFrame (wx.StaticBox):
 		vsz.Add(self.bmp, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		vsz.AddSpacer(10)
 
+		self.bUpload = wx.Button(self, wx.ID_ANY, "Upload", size=BTNSZ)
+		self.bUpload.SetBackgroundColour(wx.Colour(196, 196, 196))
+		self.Bind(wx.EVT_BUTTON, self.OnBUpload, self.bUpload)
+		vsz.Add(self.bUpload, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		vsz.AddSpacer(10)
+
 		self.SetSizer(vsz)
 		self.Layout()
 		self.Fit()
@@ -130,7 +135,13 @@ class FlFrame (wx.StaticBox):
 		if self.menuFileName is None:
 			return
 
-		self.moonraker.PrintFile(self.menuFileName)
+		try:
+			self.moonraker.PrintFile(self.menuFileName)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
 		wx.CallLater(1000, self.parent.LoadCurrentGCode)
 
 	def OnMenuPreheat(self, evt):
@@ -140,16 +151,132 @@ class FlFrame (wx.StaticBox):
 		meta = self.flMeta[self.menuFileName]
 		bedCmd  = "M140S%d" % meta["firstlayerbedtemp"]
 		extrCmd = "M104S%d" % meta["firstlayerextrtemp"]
-		self.moonraker.SendGCode(bedCmd)
-		self.moonraker.SendGCode(extrCmd)
+		try:
+			self.moonraker.SendGCode(bedCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
+		try:
+			self.moonraker.SendGCode(extrCmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
 
 	def OnMenuDownload(self, evt):
-		# TODO
-		print("download")
+		wildcard = "G Code files (*.gcode)|*.gcode|" \
+				   "All files (*.*)|*.*"
+		if self.menuFileName is None:
+			return
+
+		try:
+			r = self.moonraker.FileDownload(self.menuFileName)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		# print("===========================================")
+		# print(r.content)
+		# print("===========================================")
+		# print(r)
+		dlg = wx.FileDialog(
+			self, message="Save file as ...", defaultDir=os.getcwd(),
+			defaultFile="", wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+		)
+		rc = dlg.ShowModal()
+		if rc == wx.ID_OK:
+			path = dlg.GetPath()
+			dlg.Destroy()
+		else:
+			dlg.Destroy()
+			return
+
+		try:
+			with open(path, "wb") as ofp:
+				ofp.write(r.content)
+		except Exception as e:
+			dlg = wx.MessageDialog(self, str(e), "File I/O error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		dlg = wx.MessageDialog(self, "File %s" % path, "Download Successful", wx.OK | wx.ICON_EXCLAMATION)
+		dlg.ShowModal()
+		dlg.Destroy()
+
+	def OnBUpload(self, evt):
+		wildcard = "G Code files (*.gcode)|*.gcode|" \
+				   "All files (*.*)|*.*"
+
+		dlg = wx.FileDialog(
+			self, message="Choose a G Code file",
+			defaultDir=os.getcwd(),
+			defaultFile="",
+			wildcard=wildcard,
+			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_PREVIEW
+		)
+		rc = dlg.ShowModal()
+		if rc == wx.ID_OK:
+			path = dlg.GetPath()
+			dlg.Destroy()
+		else:
+			dlg.Destroy()
+			return
+
+		klipName = os.path.basename(path)
+
+		dlg = wx.TextEntryDialog(self, 'Enter new file name',
+			'Enter File Name', klipName)
+		if dlg.ShowModal() == wx.ID_OK:
+			klipName = dlg.GetValue()
+			if klipName is None:
+				klipName = os.path.basename(path)
+		dlg.Destroy()
+
+		if klipName in self.fnList:
+			dlg = wx.MessageDialog(self, "File %s already exists.\nPress \"Yes\" to proceed" % self.menuFileName,
+								   "Duplicate File", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+			rc = dlg.ShowModal()
+			dlg.Destroy()
+			if rc == wx.ID_NO:
+				return
+
+		try:
+			fp = open(path, "rb")
+		except Exception as e:
+			dlg = wx.MessageDialog(self, str(e), "File I/O error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		try:
+			self.moonraker.FileUpload(self.menuFileName, fp)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
 
 	def OnMenuRemove(self, evt):
-		# TODO
-		print("remove")
+		if self.menuFileName is None:
+			return
+
+		dlg = wx.MessageDialog(self, "Are you sure you want to delete\n%s" % self.menuFileName,
+						"Delete Confirmation", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+		rc = dlg.ShowModal()
+		dlg.Destroy()
+		if rc == wx.ID_NO:
+			return
+
+		try:
+			self.moonraker.FileDelete(self.menuFileName)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
 
 	def SetMoonraker(self, mr):
 		self.moonraker = mr
@@ -172,11 +299,25 @@ class FlFrame (wx.StaticBox):
 			return None
 
 	def RefreshFilesList(self):
-		fl = self.moonraker.FilesList()
+		try:
+			fl = self.moonraker.FilesList()
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
 		self.flMeta = {}
 		self.fnList = [x["path"] for x in fl]
 		for fn in self.fnList:
-			j = self.moonraker.GetGCodeMetaData(fn)
+			try:
+				j = self.moonraker.GetGCodeMetaData(fn)
+			except MoonrakerException as e:
+				dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+				dlg.ShowModal()
+				dlg.Destroy()
+				continue
+
 			self.flMeta[fn] = {
 				"height": j["object_height"],
 				"printtime": j["estimated_time"],
@@ -189,7 +330,14 @@ class FlFrame (wx.StaticBox):
 			for tn in j["thumbnails"]:
 				if tn["width"] == 200:
 					tfn = tn["relative_path"]
-					d = self.moonraker.FileDownload(tfn)
+					try:
+						d = self.moonraker.FileDownload(tfn)
+					except MoonrakerException as e:
+						dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+						dlg.ShowModal()
+						dlg.Destroy()
+						continue
+
 					i = wx.Image(io.BytesIO(d.content)).ConvertToBitmap()
 					self.flMeta[fn]["thumbnail"]  = i
 
@@ -273,6 +421,8 @@ class FileList (wx.ListCtrl):
 		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=(300, 300), \
 				style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES | wx.LC_NO_HEADER | wx.LC_SINGLE_SEL)
 		self.SetFont(wx.Font(wx.Font(16, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")))
+		self.SetBackgroundColour(wx.Colour(128, 128, 128))
+		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.moonraker = None
 		self.parent = parent
 		self.fnList = []
@@ -283,10 +433,10 @@ class FileList (wx.ListCtrl):
 		self.SetItemCount(0)
 
 		self.attr1 = wx.ItemAttr()
-		self.attr1.SetBackgroundColour(wx.Colour(156, 252, 126))
+		self.attr1.SetBackgroundColour(wx.Colour(8, 149, 235))
 
 		self.attr2 = wx.ItemAttr()
-		self.attr2.SetBackgroundColour(wx.Colour(255, 255, 255))
+		self.attr2.SetBackgroundColour(wx.Colour(196, 196, 196))
 
 		self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
 		self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
