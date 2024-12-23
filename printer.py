@@ -10,6 +10,7 @@ from statframe import StatFrame
 from thermframe import ThermalFrame
 from tempgraph import TempGraph
 from thermaldlg import ThermalDlg
+from fanframe import FanFrame
 from moonraker import Moonraker, MoonrakerException
 
 (WSDeliveryEvent, EVT_WSDELIVERY) = wx.lib.newevent.NewEvent()
@@ -60,11 +61,16 @@ class PrinterFrame(wx.Frame):
 		self.Bind(EVT_WSCONNECT, self.onWSConnectEvent)
 		self.Bind(EVT_WSERROR, self.onWSErrorEvent)
 
+		self.fanList = sorted(list(self.psettings["fans"].keys()))
+		self.heaterList = sorted(list(self.psettings["heaters"].keys()))
+		self.sensorList = sorted(list(self.psettings["sensors"].keys()))
+
 		self.statFrame = StatFrame(self, self.name, self.psettings)
 		self.gcFrame = GcFrame(self, self.name, self.psettings)
 		self.flFrame = FlFrame(self, self.name, self.psettings)
 		self.thermFrame = ThermalFrame(self, self.name, self.psettings)
 		self.tempGraph = TempGraph(self, self.name, self.psettings)
+		self.fanFrame = FanFrame(self, self.name, self.psettings, self.fanList)
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(20)
@@ -102,7 +108,11 @@ class PrinterFrame(wx.Frame):
 		vsz2.Add(self.tempGraph, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		hsz.Add(vsz2)
 		hsz.AddSpacer(10)
-		hsz.Add(self.gcFrame)
+		vsz2 = wx.BoxSizer(wx.VERTICAL)
+		vsz2.Add(self.gcFrame)
+		vsz2.AddSpacer(20)
+		vsz2.Add(self.fanFrame)
+		hsz.Add(vsz2)
 		hsz.AddSpacer(20)
 		hsz.Add(self.flFrame)
 		hsz.AddSpacer(20)
@@ -186,6 +196,7 @@ class PrinterFrame(wx.Frame):
 					self.flFrame.UpdateStatus(p)
 					self.statFrame.UpdateStatus(p)
 					self.thermFrame.UpdateStatus(p)
+					self.fanFrame.UpdateStatus(p)
 
 		elif method == "notify_filelist_changed":
 			self.flFrame.RefreshFilesList()
@@ -233,10 +244,6 @@ class PrinterFrame(wx.Frame):
 			self.close()
 
 	def SubscribeToPrinterObjects(self):
-		self.fanList = sorted(list(self.psettings["fans"].keys()))
-		self.heaterList = sorted(list(self.psettings["heaters"].keys()))
-		self.sensorList = sorted(list(self.psettings["sensors"].keys()))
-
 		subList = self.fanList + self.heaterList + self.sensorList + ["toolhead", "print_stats"]
 		self.statusUpdater("subscribing for following objects: %s" % ", ".join(subList))
 		try:
@@ -279,10 +286,12 @@ class PrinterFrame(wx.Frame):
 		self.gcFrame.SetMoonraker(self.moonraker)
 		self.flFrame.SetMoonraker(self.moonraker)
 		self.statFrame.SetMoonraker(self.moonraker)
+		self.fanFrame.SetMoonraker(self.moonraker)
 
 		self.gcFrame.SetInitialValues(ivals)
 		self.flFrame.SetInitialValues(ivals)
 		self.statFrame.SetInitialValues(ivals)
+		self.fanFrame.SetInitialValues(ivals)
 
 		self.notifyInitialized(True, self.name)
 		self.timer.Start(1000)

@@ -2,8 +2,6 @@
         add menu or toolbar:
             implement jogging - but only when not printing
 
-        add a fans frame
-
         in Gcode constructor, extract from settings nextr, accel, fil diam, g28time, g29time
 
         add pause and resume, cancel, restart buttons to status frame
@@ -11,6 +9,8 @@
         when cancelling, wait for cancel to be performed
 
         get a better error message from printer status message when klippy_state is either shutdown or error
+
+        a better solution for starting directory when reading or wriiting gcode files - save last directory on settings??
 
 
 Done but not completed yet
