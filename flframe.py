@@ -13,7 +13,7 @@ BTNSZ = (100, 30)
 
 
 class FlFrame (wx.StaticBox):
-	def __init__(self, parent, pname, psettings):
+	def __init__(self, parent, pname, settings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -26,12 +26,14 @@ class FlFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.psettings = psettings
+		self.settings = settings
+		self.psettings = settings.GetPrinterSettings(pname)
 		self.moonraker = None
 		self.flMeta = {}
 		self.fnList = []
 		self.emptyBmp = self.MakeEmpty()
 		self.menuFileName = None
+		self.activeFn = None
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
@@ -179,12 +181,9 @@ class FlFrame (wx.StaticBox):
 			dlg.Destroy()
 			return
 
-		# print("===========================================")
-		# print(r.content)
-		# print("===========================================")
-		# print(r)
+		sdir = self.settings.LastDir()
 		dlg = wx.FileDialog(
-			self, message="Save file as ...", defaultDir=os.getcwd(),
+			self, message="Save file as ...", defaultDir=sidr,
 			defaultFile="", wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
 		)
 		rc = dlg.ShowModal()
@@ -204,6 +203,8 @@ class FlFrame (wx.StaticBox):
 			dlg.Destroy()
 			return
 
+		self.settings.SetLastDir(os.path.dirname(path))
+
 		dlg = wx.MessageDialog(self, "File %s" % path, "Download Successful", wx.OK | wx.ICON_EXCLAMATION)
 		dlg.ShowModal()
 		dlg.Destroy()
@@ -212,9 +213,10 @@ class FlFrame (wx.StaticBox):
 		wildcard = "G Code files (*.gcode)|*.gcode|" \
 				   "All files (*.*)|*.*"
 
+		sdir = self.settings.LastDir()
 		dlg = wx.FileDialog(
 			self, message="Choose a G Code file",
-			defaultDir=os.getcwd(),
+			defaultDir=sdir,
 			defaultFile="",
 			wildcard=wildcard,
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_PREVIEW
@@ -228,6 +230,8 @@ class FlFrame (wx.StaticBox):
 			return
 
 		klipName = os.path.basename(path)
+
+		self.settings.SetLastDir(os.path.dirname(path))
 
 		dlg = wx.TextEntryDialog(self, 'Enter new file name',
 			'Enter File Name', klipName)
@@ -284,6 +288,16 @@ class FlFrame (wx.StaticBox):
 
 	def SetInitialValues(self, ivals):
 		pass
+
+	def setJobStatus(self, active, fn, pos, prog):
+		if fn is not None:
+			self.activeFn = fn
+
+	def HasCurrentFile(self):
+		if self.activeFn is None or self.activeFn == "":
+			return True # if I said false here, we would try to "fix" it, but nothing needs fixing here
+
+		return self.activeFn in self.fnList
 
 	def GetMeta(self, fn):
 		if fn is None:

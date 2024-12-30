@@ -1,6 +1,7 @@
 import wx, math
 import os
-import json
+from subprocess import Popen
+
 
 from moonraker import MoonrakerException
 from gcode import GCode, MOVE_MOVE, MOVE_PRINT, MOVE_EXTRUDE, MOVE_RETRACT
@@ -24,7 +25,7 @@ BTNSZ = (100, 30)
 
 
 class GcFrame (wx.StaticBox):
-	def __init__(self, parent, pname, psettings):
+	def __init__(self, parent, pname, settings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -34,10 +35,15 @@ class GcFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.psettings = psettings
+		self.settings = settings
+		self.psettings = settings.GetPrinterSettings(pname)
 		self.gcodesettings = self.psettings["gcode"]
 		self.moonraker = None
 		self.filename = None
+		self.ip = self.psettings["ip"]
+		self.prMplayer = None
+		self.mplayer = self.settings.GetSetting("mplayer")
+		self.mplayerOpts = self.settings.GetSetting("mplayeropts")
 
 		self.followprint = False
 		self.ppos = 0
@@ -84,7 +90,14 @@ class GcFrame (wx.StaticBox):
 		self.bOpenLocal.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBOpenLocal, self.bOpenLocal)
 		hsz.Add(self.bOpenLocal)
+		hsz.AddSpacer(150)
+		self.bWebcam = wx.Button(self, wx.ID_ANY, "Webcam", size=BTNSZ)
+		self.bWebcam.SetBackgroundColour(wx.Colour(196, 196, 196))
+		self.bWebcam.Enable(self.mplayer is  not None)
+		self.Bind(wx.EVT_BUTTON, self.onBWebcam, self.bWebcam)
+		hsz.Add(self.bWebcam)
 		hsz.AddSpacer(20)
+
 		vsz.Add(hsz)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
@@ -199,6 +212,18 @@ class GcFrame (wx.StaticBox):
 		self.bOpenPrinter.Enable(mr is not None)
 		self.bOpenCurrent.Enable(self.moonraker is not None and self.activeFn is not None)
 
+		if self.moonraker is None and self.prMplayer is not None:
+			try:
+				self.prMplayer.kill()
+			except:
+				pass
+			self.prMplayer = None
+
+	def Ticker(self):
+		if self.prMplayer is not None:
+			if self.prMplayer.poll() is not None:
+				self.prMplayer = None
+
 	def onBOpenPrinter(self, evt):
 		try:
 			fl = self.moonraker.FilesList()
@@ -253,9 +278,10 @@ class GcFrame (wx.StaticBox):
 		wildcard = "G Code files (*.gcode)|*.gcode|" \
 				   "All files (*.*)|*.*"
 
+		sdir = self.settings.LastDir()
 		dlg = wx.FileDialog(
 			self, message="Choose a G Code file",
-			defaultDir=os.getcwd(),
+			defaultDir=sdir,
 			defaultFile="",
 			wildcard=wildcard,
 			style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_PREVIEW
@@ -273,8 +299,25 @@ class GcFrame (wx.StaticBox):
 		self.loadGCode(gcode, False)
 		self.setTitle(os.path.basename(path), "Local")
 
+		self.settings.SetLastDir(os.path.dirname(path))
+
 		self.cbFollowPrint.SetValue(False)
 		self.cbFollowPrint.Enable(False)
+
+	def onBWebcam(self, evt):
+		if self.prMplayer is None:
+			url = "http://" + self.ip + "/webcam?action=stream"
+			cmd = [self.mplayer]
+			cmd.extend(self.mplayerOpts)
+			cmd.append(url)
+			#self.prMplayer = Popen([self.mplayer, "-loglevel", "quiet", url])
+			self.prMplayer = Popen(cmd)
+		else:
+			try:
+				self.prMplayer.kill()
+			except:
+				pass
+			self.prMplayer = None
 
 	def onSCROLL_CHANGED(self, evt):
 		lyr = self.slLayer.GetValue()
@@ -316,7 +359,14 @@ class GcFrame (wx.StaticBox):
 			self.slLayer.SetRange(0, nlayers-1)
 			self.slLayer.SetValue(0)
 			self.slLayer.Enable(True)
-			print(self.slLayer.GetTickFreq())
+
+	def close(self):
+		if self.prMplayer is not None:
+			try:
+				self.prMplayer.kill()
+			except:
+				pass
+
 
 class GcPanel (wx.Panel):
 	def __init__(self, parent, pname, psettings):
@@ -669,8 +719,6 @@ class GcPanel (wx.Panel):
 		try:
 			dc.DrawLineList(lines, pens)
 		except TypeError:
-			print("Type error: lines = %s" % str(lines))
-			print("             pens = %s" % str(pens))
 			raise
 
 	def getPen(self, mtype, offset, background):

@@ -4,18 +4,9 @@ from printer import PrinterFrame
 
 
 class App(wx.App):
-	def addStatusLine(self, line):
-		print(line)
 
 	def NotifyInit(self, flag, name):
-		try:
-			self.dlg.Destroy()
-		except:
-			pass
-
-		if flag:
-			self.frame.Show()
-		else:
+		if not flag:
 			print("Failed initialization - terminating")
 			try:
 				self.frame.Destroy()
@@ -28,15 +19,10 @@ class App(wx.App):
 	def OnInit(self):
 		settings = Settings()
 		cbMap = {
-			"status": self.addStatusLine,
 			"closer": self.ClosePrinter,
 			"init": self.NotifyInit
 		}
-		self.frame = PrinterFrame("dbot", settings, cbMap)
-
-		self.dlg = wx.MessageDialog(self.frame, "hello", "goodbye", wx.OK | wx.ICON_INFORMATION)
-		self.dlg.Show()
-
+		self.frame = PrinterFrame("voron", settings, cbMap)
 		return True
 
 

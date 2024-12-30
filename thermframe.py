@@ -1,6 +1,9 @@
 import wx
-import io
+
+from thermaldlg import ThermalDlg
+
 DATAPOINTS = 240 # 4 minutes
+BTNSZ = (100, 30)
 
 
 def CollapseList(l, n):
@@ -108,7 +111,7 @@ class Heater:
 
 
 class ThermalFrame (wx.StaticBox):
-	def __init__(self, parent, pname, psettings):
+	def __init__(self, parent, pname, settings):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -121,7 +124,8 @@ class ThermalFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.psettings = psettings
+		self.settings = settings
+		self.psettings = self.settings.GetPrinterSettings((pname))
 		self.moonraker = None
 
 		self.sensors = []
@@ -140,6 +144,12 @@ class ThermalFrame (wx.StaticBox):
 		hsz.AddSpacer(20)
 		vsz.Add(hsz)
 
+		vsz.AddSpacer(20)
+
+		self.bThermals = wx.Button(self, wx.ID_ANY, "Presets", size=BTNSZ)
+		self.bThermals.SetBackgroundColour(wx.Colour(196, 196, 196))
+		self.Bind(wx.EVT_BUTTON, self.onBThermals, self.bThermals)
+		vsz.Add(self.bThermals, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		vsz.AddSpacer(20)
 
 		self.SetSizer(vsz)
@@ -190,6 +200,10 @@ class ThermalFrame (wx.StaticBox):
 			n = h.GetName()
 			if n in jmsg:
 				h.UpdateCurrentValues(jmsg[n])
+
+	def onBThermals(self, evt):
+		dlg = ThermalDlg(self, self.pname, self.settings, self.moonraker)
+		dlg.Show()
 
 	def Ticker(self):
 		for s in self.sensors:

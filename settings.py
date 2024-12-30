@@ -14,6 +14,22 @@ class Settings:
 		with open(self.inifile, "r") as jfp:
 			self.data = json.load(jfp)
 
+	def Save(self):
+		with open(self.inifile, "w") as jfp:
+			json.dump(self.data, jfp, indent=4)
+
+	def LastDir(self):
+		try:
+			return self.data["lastdir"]
+		except KeyError:
+			d = os.getcwd()
+			self.data["lastdir"] = d
+			return d
+
+	def SetLastDir(self, newd):
+		self.data["lastdir"] = newd
+		self.Save()
+
 	def GetSetting(self, name):
 		try:
 			return self.data[name]

@@ -4,15 +4,27 @@ from moonraker import MoonrakerException
 
 
 class Fan:
-	def __init__(self, name):
+	def __init__(self, name, fsettings):
 		self.name = name
-		self.controllable = True
+		try:
+			self.controllable = fsettings["controllable"]
+		except KeyError:
+			self.controllable = False
+
+		try:
+			self.pwm = fsettings["pwm"]
+		except KeyError:
+			self.pwm = False
+
 		if self.name.startswith("controller_fan"):
-			self.controllable = False
 			self.simplifiedName = self.name[15:]
+
 		elif self.name.startswith("heater_fan"):
-			self.controllable = False
 			self.simplifiedName = self.name[11:]
+
+		elif self.name.startswith("output_pin"):
+			self.simplifiedName = self.name[11:]
+
 		else:
 			self.simplifiedName = name
 
@@ -44,10 +56,13 @@ class Fan:
 			dlg.Destroy()
 			return
 
-		fspeed = int(255.0 * float(v) / 100.0)
-		fanCmd = "M106P\"%s\"S%d" % (self.name, fspeed)
+		if self.pwm:
+			fspeed = int(255.0 * float(v) / 100.0)
+			cmd = "M106P\"%s\"S%d" % (self.simplifiedName, fspeed)
+		else:
+			cmd = "SET_PIN PIN=%s VALUE=%d" % (self.simplifiedName, v)
 		try:
-			self.moonraker.SendGCode(fanCmd)
+			self.moonraker.SendGCode(cmd)
 		except MoonrakerException as e:
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
@@ -55,8 +70,8 @@ class Fan:
 
 
 class MySlider(wx.Slider):
-	def __init__(self, parent):
-		wx.Slider.__init__(self, parent, wx.ID_ANY, 0, 0, 100, size=(200, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+	def __init__(self, parent, limit):
+		wx.Slider.__init__(self, parent, wx.ID_ANY, 0, 0, limit, size=(200, 50), style=wx.SL_HORIZONTAL | wx.SL_LABELS)
 		self.clientData = None
 
 	def SetClientData(self, data):
@@ -65,8 +80,9 @@ class MySlider(wx.Slider):
 	def GetClientData(self):
 		return self.clientData
 
+
 class FanFrame (wx.StaticBox):
-	def __init__(self, parent, pname, psettings, fans):
+	def __init__(self, parent, pname, settings, fans):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -79,12 +95,24 @@ class FanFrame (wx.StaticBox):
 
 		self.parent = parent
 		self.pname = pname
-		self.psettings = psettings
+		self.settings = settings
+		self.psettings = self.settings.GetPrinterSettings(pname)
 		self.moonraker = None
 		self.fanMap = {}
 		self.fanNames = [f for f in fans]
 		for f in self.fanNames:
-			self.fanMap[f] = Fan(f)
+			try:
+				s = self.psettings["fans"][f]
+			except KeyError:
+				try:
+					s = self.psettings["outputs"][f]
+				except KeyError:
+					s = None
+
+			if s is not None:
+				self.fanMap[f] = Fan(f, s)
+			else:
+				print("definition missing for fan/output %s" % f)
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
@@ -98,7 +126,7 @@ class FanFrame (wx.StaticBox):
 			st.SetFont(self.ftb)
 			hsz.Add(st)
 			hsz.AddSpacer(20)
-			sl = MySlider(self)
+			sl = MySlider(self, 100 if f.pwm else 1)
 			self.Bind(wx.EVT_SCROLL_CHANGED, self.onScrollChanged, sl)
 			sl.SetFont(self.ftb)
 			f.SetSlider(sl)

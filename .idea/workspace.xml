@@ -4,10 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b314e6-3d25-4aad-8c01-19853ab4b88d" name="Changes" comment="check in">
-      <change afterPath="$PROJECT_DIR$/fanframe.py" afterDir="false" />
+    <list default="true" id="98b314e6-3d25-4aad-8c01-19853ab4b88d" name="Changes" comment="implemented fan frame, fixes">
+      <change afterPath="$PROJECT_DIR$/listdlg.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fanframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/fanframe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/flframe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gcframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/gcframe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/klipmon.json" beforeDir="false" afterPath="$PROJECT_DIR$/klipmon.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/moonraker.py" beforeDir="false" afterPath="$PROJECT_DIR$/moonraker.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/printer.py" beforeDir="false" afterPath="$PROJECT_DIR$/printer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/statframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/statframe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempgraph.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempgraph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/thermframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/thermframe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/todo" beforeDir="false" afterPath="$PROJECT_DIR$/todo" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -110,7 +120,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734842583657</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="implemented fan frame, fixes">
+      <option name="closed" value="true" />
+      <created>1734919047110</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1734919047110</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -127,6 +145,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="check in" />
-    <option name="LAST_COMMIT_MESSAGE" value="check in" />
+    <MESSAGE value="implemented fan frame, fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="implemented fan frame, fixes" />
   </component>
 </project>

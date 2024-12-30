@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import urllib.parse
 
 from mrclient import Client
 
@@ -105,9 +106,41 @@ class Moonraker:
 	def close(self):
 		self.unsubscribe()
 
+	def EmergencyStop(self):
+		try:
+			p = self.session.post(self.ipString + "/printer/emergency_stop", timeout=5.0)
+
+		except requests.exceptions.ReadTimeout:
+			return
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send printer emergency stop")
+
+		if p.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(p, "emergency stop"))
+
+		try:
+			j = p.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse emergency stop return message as JSON")
+
+		try:
+			result = j["result"]
+		except KeyError:
+			msg = "Unexpected response from emergency stop: %s" % p.text
+			raise MoonrakerException(msg)
+
+		if result != "ok":
+			msg = "Unexpected response from emergency stop: %s" % p.text
+			raise MoonrakerException(msg)
+
 	def ServerInfo(self):
 		try:
 			r = self.session.get(self.ipString + "/server/info", timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server info")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send server info request")
 
@@ -119,9 +152,31 @@ class Moonraker:
 		except json.decoder.JSONDecodeError:
 			return r.text
 
+	def PrinterInfo(self):
+		try:
+			r = self.session.get(self.ipString + "/printer/info", timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer info")
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send printer info request")
+
+		if r.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(r, "printer info"))
+
+		try:
+			return r.json()
+		except json.decoder.JSONDecodeError:
+			return r.text
+
 	def RootsList(self):
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/server/files/roots", timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on roots list")
+
 		except requests.exceptions.ConnectionError:
 			return False, "Unable to send list roots request"
 
@@ -138,6 +193,10 @@ class Moonraker:
 		parms = {"root": root}
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/server/files/list", params=parms, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on files list")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to establish connection with printer %s at address %s" % (self.name, self.ipString))
 
@@ -158,6 +217,10 @@ class Moonraker:
 		parms = {"filename": fn}
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/server/files/metadata", params=parms, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server files metadata")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to establish connection with printer %s at address %s" % (self.name, self.ipString))
 
@@ -177,6 +240,10 @@ class Moonraker:
 	def PrinterObjectsList(self):
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/printer/objects/list", timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer objects list")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send printer object list request")
 
@@ -197,6 +264,10 @@ class Moonraker:
 		objString = "&".join(objects)
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/printer/objects/query?" + objString, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer objects query")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send printer object %s query request" % object)
 
@@ -215,6 +286,10 @@ class Moonraker:
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/printer/objects/subscribe?" + parms
 			r = self.session.get(url, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer objects subscribe")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send printer object %s subscribe request" % object)
 
@@ -230,6 +305,10 @@ class Moonraker:
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/server/temperature_store?include_monitors=false"
 			r = self.session.get(url, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server temperature_store")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send server temperature_store request")
 
@@ -242,8 +321,13 @@ class Moonraker:
 			raise MoonrakerException("Unable to parse Object Status return message as JSON")
 
 	def PrintFile(self, fn):
+		url = "http://" + self.ip + ":" + self.port + "/printer/print/start?filename=" + fn
 		try:
-			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/print/start?filename=" + fn)
+			p = self.session.post(url, timeout=2.0)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer print start")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send print start request")
 
@@ -265,9 +349,103 @@ class Moonraker:
 			msg = "Unexpected response from start print: %s" % p.text
 			raise MoonrakerException(msg)
 
+	def PrintFilePause(self):
+		url = "http://" + self.ip + ":" + self.port + "/printer/print/pause"
+		try:
+			p = self.session.post(url, timeout=2.0)
+
+		except requests.exceptions.ReadTimeout:
+			return
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send print pause request")
+
+		if p.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(p, "printer print pause"))
+
+		try:
+			j = p.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse print pause return message as JSON")
+
+		try:
+			result = j["result"]
+		except KeyError:
+			msg = "Unexpected response from pause print: %s" % p.text
+			raise MoonrakerException(msg)
+
+		if result != "ok":
+			msg = "Unexpected response from pause print: %s" % p.text
+			raise MoonrakerException(msg)
+
+	def PrintFileResume(self):
+		url = "http://" + self.ip + ":" + self.port + "/printer/print/resume"
+		try:
+			p = self.session.post(url, timeout=2.0)
+
+		except requests.exceptions.ReadTimeout:
+			return
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send print resume request")
+
+		if p.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(p, "printer print resume"))
+
+		try:
+			j = p.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse print resume return message as JSON")
+
+		try:
+			result = j["result"]
+		except KeyError:
+			msg = "Unexpected response from resume print: %s" % p.text
+			raise MoonrakerException(msg)
+
+		if result != "ok":
+			msg = "Unexpected response from resume print: %s" % p.text
+			raise MoonrakerException(msg)
+
+	def PrintFileCancel(self):
+		url = "http://" + self.ip + ":" + self.port + "/printer/print/cancel"
+		try:
+			p = self.session.post(url, timeout=2.0)
+
+		except requests.exceptions.ReadTimeout:
+			return
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send print cancel request")
+
+		if p.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(p, "printer print cancel"))
+
+		try:
+			j = p.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse print cancel return message as JSON")
+
+		try:
+			result = j["result"]
+		except KeyError:
+			msg = "Unexpected response from cancel print: %s" % p.text
+			raise MoonrakerException(msg)
+
+		if result != "ok":
+			msg = "Unexpected response from cancel print: %s" % p.text
+			raise MoonrakerException(msg)
+
+	def ClearFile(self):
+		return self.SendGCode("SDCARD_RESET_FILE")
+
 	def SendGCode(self, gcodecmd):
 		try:
-			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/gcode/script?script=" + gcodecmd, timeout=0.7)
+			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/gcode/script?script=" + urllib.parse.quote(gcodecmd), timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on printer gcode script")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send GCode commands")
 
@@ -295,6 +473,10 @@ class Moonraker:
 	def PrinterJobStatus(self, object="virtual_sdcard"):
 		try:
 			r = self.session.get("http://" + self.ip + ":" + self.port + "/printer/objects/query?"+object, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on job status")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send printer job status request")
 
@@ -309,7 +491,11 @@ class Moonraker:
 	def FileDownload(self, filename, root="gcodes"):
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/server/files/" + root + "/" + filename
-			r = self.session.get(url, timeout=20)
+			r = self.session.get(url, timeout=20.0)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server files download")
+
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send file download request")
 
@@ -323,12 +509,12 @@ class Moonraker:
 			url = "http://" + self.ip + ":" + self.port + "/server/files/upload"
 			files={"file": filep, "filename": filename, "root": root}
 			r = requests.post(url, files=files, timeout=20.0)
-			print(r.url)
-			print(r.headers)
-			print(r.content)
-			print(r.text, flush=True)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server files upload")
+
 		except requests.exceptions.ConnectionError:
-			raise MoonrakerException("Unable to send post request is rr server running?")
+			raise MoonrakerException("Unable to send post request.")
 
 		if r.status_code >= 400:
 			raise MoonrakerException(getErrorMessage(r, "printer files upload"))
@@ -338,61 +524,15 @@ class Moonraker:
 	def FileDelete(self, filename, root="gcodes"):
 		try:
 			url = "http://" + self.ip + ":" + self.port + "/server/files/" + root + "/" + filename
-			r = requests.delete(url)
+			r = requests.delete(url, timeout=2.0)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on server files delete")
+
 		except requests.exceptions.ConnectionError:
-			raise MoonrakerException("Unable to send delete request is rr server running?")
+			raise MoonrakerException("Unable to send delete request")
 
 		if r.status_code >= 400:
 			raise MoonrakerException(getErrorMessage(r, "server files delete"))
 
 		return True
-
-if __name__ == '__main__':
-	p = Moonraker("dbot.local", "7125", "dbot")
-
-	# rc, resp = p.ServerInfo()
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-
-	# rc, resp = p.RootsList()
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-	#
-	# rc, resp = p.FilesList()
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-	#
-	# rc, resp = p.PrinterJobStatus()
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-	#
-	# rc, resp = p.FileDownload("drawer divider.gcode")
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# offset = 0
-	# for i in range(10):
-	# 	print("%d(%d): %s" % (i, offset, resp[i]))
-	# 	offset += len(resp[i]) + 1
-	#
-	# rc, resp = p.PrinterObjectsList()
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-	#
-	# rc, resp = p.PrinterObjectStatus(["extruder", "heater_bed", ])
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-	#
-	# rc, resp = p.PrinterObjectStatus(["heaters"])
-	# print("response code: %s" % rc)
-	# print("response value:")
-	# pprint.pprint(resp)
-
-	fp = open("C:\\Users\\jeff\\tmp\\cube.gcode", "r")
-	p.FileUpload("file", fp)
-

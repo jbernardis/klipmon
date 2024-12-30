@@ -13,11 +13,12 @@ from thermframe import DATAPOINTS
 
 
 class TempGraph(wx.Panel):
-    def __init__(self, parent, pname, psettings):
+    def __init__(self, parent, pname, settings):
         wx.Panel.__init__(self, parent, size=(600, 400))
         self.parent = parent
         self.pname = pname
-        self.psettings = psettings
+        self.settings = settings
+        self.psettings = self.settings.GetPrinterSettings(pname)
         self.sensors = None
         self.heaters = None
         self.heater_actual = {}
