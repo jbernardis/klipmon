@@ -247,7 +247,7 @@ class GcFrame (wx.StaticBox):
 				dlg.Destroy()
 				return
 
-			gcode = GCode(gcl, self.pname, self.psettings)
+			gcode = GCode(gcl, self.pname, self.settings, self.psettings)
 			self.loadGCode(gcode, False)
 			self.setTitle(fn, "Printer")
 
@@ -269,7 +269,7 @@ class GcFrame (wx.StaticBox):
 			dlg.Destroy()
 			return
 
-		gcode = GCode(gcl, self.pname, self.psettings)
+		gcode = GCode(gcl, self.pname, self.settings, self.psettings)
 		self.loadGCode(gcode, True)
 		self.setTitle(self.activeFn, "Current")
 		self.cbFollowPrint.Enable(True)
@@ -295,7 +295,7 @@ class GcFrame (wx.StaticBox):
 		with open(path) as x:
 			gcl = x.readlines()
 
-		gcode = GCode(gcl, self.pname, self.psettings)
+		gcode = GCode(gcl, self.pname, self.settings, self.psettings)
 		self.loadGCode(gcode, False)
 		self.setTitle(os.path.basename(path), "Local")
 

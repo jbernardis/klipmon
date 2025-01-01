@@ -1,4 +1,5 @@
 import wx
+import json
 
 BTNSZ = (100, 30)
 
@@ -328,7 +329,7 @@ class StatFrame (wx.StaticBox):
 		self.moonraker.ClearFile()
 
 	def OnBJog(self, evt):
-		pass
+		self.parent.OnBJog()
 
 	def Ticker(self):
 		self.stTDur.SetLabel(formatTime(self.totalduration))
@@ -404,53 +405,51 @@ class StatFrame (wx.StaticBox):
 			try:
 				s = self.activeMeta["filamenttotal"]
 				self.stTFil.SetLabel("%9.2f" % s)
-				print("after formatting %9.2f" % s, flush=True)
 			except KeyError:
 				self.stTFil.SetLabel("")
 
 	def UpdateState(self):
 		if self.state is None:
 			self.stState.SetLabel("")
+			movement = False
+			extrusion = False
 		else:
 			state = self.state
 			if self.state == "standby":
+				movement = True
+				extrusion = True
 				if self.activeFn is None or self.activeFn == "":
-					self.bJog.Enable(True)
 					self.bStart.SetLabel("Start")
 					self.bStart.Enable(False)
 					self.bPause.SetLabel("Pause")
 					self.bPause.Enable(False)
 					self.bClear.Enable(False)
 				else:
-					self.bJog.Enable(True)
 					self.bStart.SetLabel("Start")
 					self.bStart.Enable(True)
 					self.bPause.SetLabel("Pause")
 					self.bPause.Enable(False)
 					self.bClear.Enable(True)
 			elif self.state == "printing" and not self.cancelling:
-				self.bJog.Enable(False)
+				movement = False
+				extrusion = False
 				self.bClear.Enable(False)
 				self.bPause.Enable(True)
 				self.bPause.SetLabel("Pause")
 				self.bStart.Enable(True)
 				self.bStart.SetLabel("Cancel")
-				if self.jogDlg is not None:
-					self.jogDlg.Destroy()
-					self.jogDlg = None
 			elif self.state == "printing" and self.cancelling:
-				self.bJog.Enable(False)
+				movement = False
+				extrusion = False
 				self.bClear.Enable(False)
 				self.bPause.Enable(False)
 				self.bPause.SetLabel("Pause")
 				self.bStart.Enable(False)
 				self.bStart.SetLabel("Cancel")
-				if self.jogDlg is not None:
-					self.jogDlg.Destroy()
-					self.jogDlg = None
 				state = "cancelling"
 			elif self.state == "paused":
-				self.bJog.Enable(False)
+				movement = False
+				extrusion = True
 				self.bClear.Enable(False)
 				self.bPause.Enable(True)
 				self.bPause.SetLabel("Resume")
@@ -460,15 +459,18 @@ class StatFrame (wx.StaticBox):
 					self.jogDlg.Destroy()
 					self.jogDlg = None
 			else: # self.state is completed or cancelled
+				movement = True
+				extrusion = True
 				self.cancelling = False
 				self.bPause.Enable(False)
 				self.bPause.SetLabel("Pause")
-				self.bJog.Enable(True)
 				self.bClear.Enable(True)
 				self.bStart.Enable(True)
 				self.bStart.SetLabel("Restart")
 
 			self.stState.SetLabel("State: %s" % state)
+
+		self.parent.EnableJogging(movement, extrusion)
 
 	def SetMoonraker(self, mr):
 		self.moonraker = mr
@@ -499,6 +501,7 @@ class StatFrame (wx.StaticBox):
 
 		if "gcode_move" in ivals:
 			self.ParseGCodeMove(ivals["gcode_move"])
+
 
 	def ParsePrintStats(self, pstats):
 		try:

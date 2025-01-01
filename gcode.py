@@ -153,14 +153,14 @@ def get_float(paramStr, which, last, relativeValue=False):
 		return last
 
 class GCode:
-	def __init__(self, gc, pname, psettings):
+	def __init__(self, gc, pname, settings, psettings):
 		self.gcode = [g for g in gc]
 
-		self.nExtr = 1 # settings.getSetting("nExtr", pname, 1)
-		self.acceleration = 1500 # settings.getSetting("acceleration", pname, 1500)
-		self.filamentDiameter = 1.75 #settings.getSetting("filamentDiameter", pname, 1.75)
-		self.g28time = 15 # settings.getSetting("g28time", pname, 15)
-		self.g29time = 60 #settings.getSetting("g29time", pname, 60)
+		self.nExtr = settings.GetPrinterSetting(pname, "nExtr", 1)
+		self.acceleration = settings.GetPrinterSetting(pname, "acceleration", 1500)
+		self.filamentDiameter = settings.GetPrinterSetting(pname, "filamentdiameter", 1.75)
+		self.g28time = settings.GetPrinterSetting(pname, "g28time", 15)
+		self.g29time = settings.GetPrinterSetting(pname, "g29time", 60)
 
 		self.relativeExtrude = False
 		self.relativeMove = False

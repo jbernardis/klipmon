@@ -4,19 +4,28 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b314e6-3d25-4aad-8c01-19853ab4b88d" name="Changes" comment="implemented fan frame, fixes">
-      <change afterPath="$PROJECT_DIR$/listdlg.py" afterDir="false" />
+    <list default="true" id="98b314e6-3d25-4aad-8c01-19853ab4b88d" name="Changes" comment="check in">
+      <change afterPath="$PROJECT_DIR$/heater.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/imagemap.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/control_e.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/control_xy.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/control_z.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/heatoff.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/images/heaton.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/jogdlg.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/manualgcframe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/fanframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/fanframe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/flframe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gcframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/gcframe.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gcode.py" beforeDir="false" afterPath="$PROJECT_DIR$/gcode.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/klipmon.json" beforeDir="false" afterPath="$PROJECT_DIR$/klipmon.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/moonraker.py" beforeDir="false" afterPath="$PROJECT_DIR$/moonraker.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/printer.py" beforeDir="false" afterPath="$PROJECT_DIR$/printer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/statframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/statframe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tempgraph.py" beforeDir="false" afterPath="$PROJECT_DIR$/tempgraph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/thermaldlg.py" beforeDir="false" afterPath="$PROJECT_DIR$/thermaldlg.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/thermframe.py" beforeDir="false" afterPath="$PROJECT_DIR$/thermframe.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/todo" beforeDir="false" afterPath="$PROJECT_DIR$/todo" afterDir="false" />
     </list>
@@ -56,29 +65,83 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.gcframe.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.matplot.executor&quot;: &quot;Run&quot;,
-    &quot;Python.moonraker.executor&quot;: &quot;Run&quot;,
-    &quot;Python.mrclient.executor&quot;: &quot;Run&quot;,
-    &quot;Python.opclient.executor&quot;: &quot;Run&quot;,
-    &quot;Python.printer.executor&quot;: &quot;Run&quot;,
-    &quot;Python.printerserver.executor&quot;: &quot;Run&quot;,
-    &quot;Python.settings.executor&quot;: &quot;Run&quot;,
-    &quot;Python.tempgraph.executor&quot;: &quot;Run&quot;,
-    &quot;Python.video.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/jeff/PycharmProjects/klipmon&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.gcframe.executor": "Run",
+    "Python.klipmon voron.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.matplot.executor": "Run",
+    "Python.moonraker.executor": "Run",
+    "Python.mrclient.executor": "Run",
+    "Python.opclient.executor": "Run",
+    "Python.printer.executor": "Run",
+    "Python.printerserver.executor": "Run",
+    "Python.settings.executor": "Run",
+    "Python.tempgraph.executor": "Run",
+    "Python.video.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/jeff/PycharmProjects/klipmon"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\jeff\PycharmProjects\klipmon" />
+      <recent name="C:\Users\jeff\PycharmProjects\klipmon\images" />
     </key>
+  </component>
+  <component name="RunManager" selected="Python.klipmon dbot">
+    <configuration name="klipmon dbot" type="PythonConfigurationType" factoryName="Python">
+      <module name="klipmon" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.12 (psrysuite)" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\jeff\PycharmProjects\klipmon" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="--dbot" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="klipmon voron" type="PythonConfigurationType" factoryName="Python">
+      <module name="klipmon" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.12 (psrysuite)" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\jeff\PycharmProjects\klipmon" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="--voron" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.klipmon voron" />
+      <item itemvalue="Python.klipmon dbot" />
+    </list>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
@@ -128,7 +191,15 @@
       <option name="project" value="LOCAL" />
       <updated>1734919047110</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="check in">
+      <option name="closed" value="true" />
+      <created>1735531716243</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1735531716243</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -144,8 +215,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
-    <MESSAGE value="check in" />
     <MESSAGE value="implemented fan frame, fixes" />
-    <option name="LAST_COMMIT_MESSAGE" value="implemented fan frame, fixes" />
+    <MESSAGE value="check in" />
+    <option name="LAST_COMMIT_MESSAGE" value="check in" />
   </component>
 </project>

@@ -9,6 +9,12 @@
         "voron": {
             "ip": "voron.local",
             "port": 7125,
+            "hasbltouch": false,
+            "macros": {
+                "Bed Level": "QUAD_GANTRY_LEVEL",
+                "Z Offset": "CALIBRATE_Z",
+                "Lights toggle": "LIGHTS"
+            },
             "gcode": {
                 "showmoves": true,
                 "showprevious": true,
@@ -21,18 +27,13 @@
                 ],
                 "scale": 2
             },
-            "presets": {
-                "PLA": [
-                    70,
-                    215
-                ],
-                "ABS": [
-                    105,
-                    235
-                ]
-            },
             "heaters": {
                 "extruder": {
+                    "gcode": "M104",
+                    "presets": {
+                        "PLA": 215,
+                        "ABS": 235
+                    },
                     "tempcolor": [
                         253,
                         127,
@@ -40,6 +41,11 @@
                     ]
                 },
                 "heater_bed": {
+                    "gcode": "M140",
+                    "presets": {
+                        "PLA": 70,
+                        "ABS": 105
+                    },
                     "tempcolor": [
                         115,
                         251,
@@ -89,11 +95,24 @@
                     "pwm": false,
                     "controllable": true
                 }
-            }
+            },
+            "xyspeed": 1000,
+            "espeed": 350,
+            "zspeed": 300,
+            "elength": 5,
+            "nExtr": 1,
+            "acceleration": 1500,
+            "filamentdiameter": 1.75,
+            "g28time": 15,
+            "g29time": 60
         },
         "dbot": {
             "ip": "dbot.local",
             "port": 7125,
+            "hasbltouch": true,
+            "macros": {
+                "Bed Level": "Z_TILT_ADJUST"
+            },
             "gcode": {
                 "showmoves": true,
                 "showprevious": true,
@@ -106,18 +125,13 @@
                 ],
                 "scale": 3
             },
-            "presets": {
-                "PLA": [
-                    70,
-                    215
-                ],
-                "ABS": [
-                    105,
-                    235
-                ]
-            },
             "heaters": {
                 "extruder": {
+                    "gcode": "M104",
+                    "presets": {
+                        "PLA": 215,
+                        "ABS": 235
+                    },
                     "tempcolor": [
                         253,
                         127,
@@ -125,6 +139,11 @@
                     ]
                 },
                 "heater_bed": {
+                    "gcode": "M140",
+                    "presets": {
+                        "PLA": 70,
+                        "ABS": 105
+                    },
                     "tempcolor": [
                         115,
                         251,
@@ -161,7 +180,11 @@
                     "pwm": true,
                     "controllable": false
                 }
-            }
+            },
+            "xyspeed": 1000,
+            "zspeed": 300,
+            "espeed": 300,
+            "elength": 5
         }
     }
 }

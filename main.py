@@ -1,4 +1,6 @@
 import wx
+import sys
+import getopt
 from settings import Settings
 from printer import PrinterFrame
 
@@ -17,12 +19,34 @@ class App(wx.App):
 		self.frame.Destroy()
 
 	def OnInit(self):
+		try:
+			opts, _ = getopt.getopt(sys.argv[1:], "", ["dbot", "voron"])
+		except getopt.GetoptError:
+			print('Invalid command line arguments')
+			return False
+
+		pname = None
+
+		for opt, _ in opts:
+			if opt == "--dbot":
+				pname = "dbot"
+			elif opt == "--voron":
+				pname = "voron"
+			else:
+				print("Invalid command line argument: %s" % opt)
+				return False
+
 		settings = Settings()
 		cbMap = {
 			"closer": self.ClosePrinter,
 			"init": self.NotifyInit
 		}
-		self.frame = PrinterFrame("voron", settings, cbMap)
+		if pname is None:
+			print("No printer name specified")
+			return False
+
+		print("pname = %s" % pname)
+		self.frame = PrinterFrame(pname, settings, cbMap)
 		return True
 
 

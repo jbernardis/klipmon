@@ -1,4 +1,5 @@
 import wx
+import json
 
 from moonraker import MoonrakerException
 
@@ -30,6 +31,7 @@ class Fan:
 
 		self.speed = 0
 		self.slider = None
+		self.textCtl = None
 		self.moonraker = None
 
 	def SetMoonraker(self, mr):
@@ -38,13 +40,19 @@ class Fan:
 	def SetSpeed(self, s):
 		self.speed = s
 		ispeed = int(self.speed * 100.0)
-		if self.slider is not None:
-			self.slider.SetValue(ispeed)
+		if self.controllable:
+			if self.slider is not None:
+				self.slider.SetValue(ispeed)
+		else:
+			self.textCtl.SetLabel("%3d%%" % ispeed)
 
 	def SetSlider(self, sl):
 		self.slider = sl
 		self.slider.Enable(self.controllable)
 		self.slider.SetClientData(self)
+
+	def SetWidget(self, st):
+		self.textCtl = st
 
 	def SimplifiedName(self):
 		return self.simplifiedName
@@ -122,15 +130,25 @@ class FanFrame (wx.StaticBox):
 		col = 0
 		for fn, f in self.fanMap.items():
 			hsz.AddSpacer(10)
-			st = wx.StaticText(self, wx.ID_ANY, f.SimplifiedName(), size=(110, -1), style=wx.ALIGN_RIGHT)
+			fname = f.SimplifiedName()
+			if fname == "fan":
+				fname = "part fan"
+			st = wx.StaticText(self, wx.ID_ANY, fname, size=(110, -1), style=wx.ALIGN_RIGHT)
 			st.SetFont(self.ftb)
 			hsz.Add(st)
 			hsz.AddSpacer(20)
-			sl = MySlider(self, 100 if f.pwm else 1)
-			self.Bind(wx.EVT_SCROLL_CHANGED, self.onScrollChanged, sl)
-			sl.SetFont(self.ftb)
-			f.SetSlider(sl)
-			hsz.Add(sl)
+			if f.controllable:
+				sl = MySlider(self, 100 if f.pwm else 1)
+				self.Bind(wx.EVT_SCROLL_CHANGED, self.onScrollChanged, sl)
+				sl.SetFont(self.ftb)
+				f.SetSlider(sl)
+				hsz.Add(sl)
+			else:
+				st = wx.StaticText(self, wx.ID_ANY, "0%", size=(200, 50), style=wx.ALIGN_RIGHT)
+				st.SetFont(self.ftb)
+				f.SetWidget(st)
+				hsz.Add(st)
+
 			col = 1 - col
 			if col == 0:
 				hsz.AddSpacer(20)
@@ -162,16 +180,18 @@ class FanFrame (wx.StaticBox):
 			f.SetMoonraker(mr)
 
 	def SetInitialValues(self, ivals):
-		for fn, f in self.fanMap.items():
-			try:
-				f.SetSpeed(ivals[fn]["speed"])
-			except KeyError:
-				pass
+		self.UpdateFans(ivals)
 
 	def UpdateStatus(self, jmsg):
+		self.UpdateFans(jmsg)
+
+	def UpdateFans(self, jmsg):
 		for fn, f in self.fanMap.items():
 			try:
 				f.SetSpeed(jmsg[fn]["speed"])
 			except KeyError:
-				pass
+				try:
+					f.SetSpeed(jmsg[fn]["value"])
+				except KeyError:
+					pass
 

@@ -30,10 +30,12 @@ class Settings:
 		self.data["lastdir"] = newd
 		self.Save()
 
-	def GetSetting(self, name):
+	def GetSetting(self, name, default=None):
 		try:
 			return self.data[name]
 		except KeyError:
+			self.data[name] = default
+			self.Save()
 			return None
 
 	def GetPrinters(self):
@@ -45,9 +47,15 @@ class Settings:
 		except KeyError:
 			return None
 
-	def GetPrinterGCodeSettings(self, pn):
+	def SetPrinterSetting(self, sname, val, pname):
+		self.data["printers"][pname][sname] = val
+		self.Save()
+
+	def GetPrinterSetting(self, pname, sname, default=None):
 		try:
-			return self.data["printers"][pn]["gcode"]
+			return self.data["printers"][pname][sname]
 		except KeyError:
-			return None
+			self.data["printers"][pname][sname] = default
+			self.Save()
+			return default
 

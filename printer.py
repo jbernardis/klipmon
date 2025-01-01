@@ -9,8 +9,11 @@ from statframe import StatFrame
 from thermframe import ThermalFrame
 from tempgraph import TempGraph
 from fanframe import FanFrame
+from manualgcframe import ManualGCodeFrame
 from moonraker import Moonraker, MoonrakerException
 from listdlg import ListDlg
+from images import Images
+from jogdlg import JogDlg
 
 (WSDeliveryEvent, EVT_WSDELIVERY) = wx.lib.newevent.NewEvent()
 (WSConnectEvent, EVT_WSCONNECT) = wx.lib.newevent.NewEvent()
@@ -18,6 +21,16 @@ from listdlg import ListDlg
 (WSErrorEvent, EVT_WSERROR) = wx.lib.newevent.NewEvent()
 
 BTNSZ = (120, 50)
+
+MENU_VIEW_LOG = 1100
+MENU_VIEW_GCODE = 1101
+MENU_MACROS_BASE = 1200
+MENU_TOOLS_BACKUP_CONFIG = 1300
+MENU_TOOLS_BLTOUCH = 1310
+MENU_TOOLS_BLTOUCH_DOWN = 1311
+MENU_TOOLS_BLTOUCH_UP = 1312
+MENU_TOOLS_BLTOUCH_SELF_TEST = 1313
+MENU_TOOLS_BLTOUCH_RESET = 1314
 
 
 class PrinterFrame(wx.Frame):
@@ -28,6 +41,8 @@ class PrinterFrame(wx.Frame):
 		self.closing = False
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 
+		self.images = Images()
+
 		self.initialized = False
 		self.moonraker = None
 		self.connectionId = None
@@ -36,6 +51,7 @@ class PrinterFrame(wx.Frame):
 		self.settings = settings
 		self.psettings = self.settings.GetPrinterSettings(name)
 		self.tempGraph = None
+		self.CanExtrude = False
 
 		self.fanList = []
 		self.heaterList = []
@@ -70,6 +86,52 @@ class PrinterFrame(wx.Frame):
 		self.thermFrame = ThermalFrame(self, self.name, self.settings)
 		self.tempGraph = TempGraph(self, self.name, self.settings)
 		self.fanFrame = FanFrame(self, self.name, self.settings, self.fanList+self.outputList)
+		self.manualFrame = ManualGCodeFrame(self, self.name, self.settings)
+
+		menuBar = wx.MenuBar()
+
+		menu = wx.Menu()
+		menu.Append(MENU_VIEW_LOG, "Log", "Hide/Show the Log Screen")
+		self.Bind(wx.EVT_MENU, self.OnBLog, id=MENU_VIEW_LOG)
+		menu.Append(MENU_VIEW_GCODE, "GCode", "Hide/Show the GCode Screen")
+		self.Bind(wx.EVT_MENU, self.OnBGCode, id=MENU_VIEW_GCODE)
+		menuBar.Append(menu, "View")
+
+		self.macroMap = {}
+		if "macros" in self.psettings:
+			menu = wx.Menu()
+			ix = 0
+			for label, macro in self.psettings["macros"].items():
+				id = MENU_MACROS_BASE + ix
+				ix += 1
+				menu.Append(id, label)
+				self.Bind(wx.EVT_MENU, self.OnMenuMacro, id=id)
+				self.macroMap[id] = macro
+			menuBar.Append(menu, "Macros")
+
+		menu = wx.Menu()
+		menu.Append(MENU_TOOLS_BACKUP_CONFIG, "Backup Config", "Backup printer configuration files")
+		self.Bind(wx.EVT_MENU, self.OnMenuBackupConfig, id=MENU_TOOLS_BACKUP_CONFIG)
+		try:
+			hasBlTouch = self.psettings["hasbltouch"]
+		except KeyError:
+			hasBlTouch = False
+
+		if hasBlTouch:
+			submenu = wx.Menu()
+			submenu.Append(MENU_TOOLS_BLTOUCH_DOWN, "Pin Down", "Lower the BL Touch pin")
+			self.Bind(wx.EVT_MENU, self.OnMenuBLTouchDown, id=MENU_TOOLS_BLTOUCH_DOWN)
+			submenu.Append(MENU_TOOLS_BLTOUCH_UP, "Pin Up", "Raise the BL Touch pin")
+			self.Bind(wx.EVT_MENU, self.OnMenuBLTouchUp, id=MENU_TOOLS_BLTOUCH_UP)
+			submenu.Append(MENU_TOOLS_BLTOUCH_SELF_TEST, "Self Test", "Run BL Touch Self Test")
+			self.Bind(wx.EVT_MENU, self.OnMenuBLTouchSelfTest, id=MENU_TOOLS_BLTOUCH_SELF_TEST)
+			submenu.Append(MENU_TOOLS_BLTOUCH_RESET, "Reset", "Reset the BL Touch")
+			self.Bind(wx.EVT_MENU, self.OnMenuBLTouchReset, id=MENU_TOOLS_BLTOUCH_RESET)
+			menu.Append(MENU_TOOLS_BLTOUCH, "BLTouch", submenu)
+
+		menuBar.Append(menu, "Tools")
+
+		self.SetMenuBar(menuBar)
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(20)
@@ -86,8 +148,10 @@ class PrinterFrame(wx.Frame):
 		hsz.AddSpacer(10)
 		vsz2 = wx.BoxSizer(wx.VERTICAL)
 		vsz2.Add(self.gcFrame)
-		vsz2.AddSpacer(20)
+		vsz2.AddSpacer(10)
 		vsz2.Add(self.fanFrame)
+		vsz2.AddSpacer(10)
+		vsz2.Add(self.manualFrame, 0, wx.EXPAND)
 		hsz.Add(vsz2)
 
 		vsz3 = wx.BoxSizer(wx.VERTICAL)
@@ -95,18 +159,6 @@ class PrinterFrame(wx.Frame):
 		vsz3.AddSpacer(340)
 
 		bszr = wx.BoxSizer(wx.HORIZONTAL)
-		self.bLog = wx.Button(self, wx.ID_ANY, "Log", size=(64, 64))
-		self.Bind(wx.EVT_BUTTON, self.OnBLog, self.bLog)
-		bszr.Add(self.bLog)
-
-		bszr.AddSpacer(20)
-
-		self.bGCode = wx.Button(self, wx.ID_ANY, "GCode", size=(64, 64))
-		self.Bind(wx.EVT_BUTTON, self.OnBGCode, self.bGCode)
-		bszr.Add(self.bGCode)
-
-		bszr.AddSpacer(20)
-
 		self.bEStop = wx.Button(self, wx.ID_ANY, "ESTOP", size=(64, 64))
 		self.bEStop.SetBackgroundColour(wx.Colour((255, 0, 0)))
 		self.bEStop.SetForegroundColour(wx.Colour((0, 0, 0)))
@@ -134,6 +186,9 @@ class PrinterFrame(wx.Frame):
 		self.dlgGCode = ListDlg(self, "GCode Response", [], self.HideGCode, True)
 		self.dlgGCode.Hide()
 
+		self.dlgJog = JogDlg(self, self.name, self.settings, self.images, self.HideJog)
+		self.dlgJog.Hide()
+
 		wx.CallAfter(self.Initialize)
 
 	def HideLog(self):
@@ -157,17 +212,83 @@ class PrinterFrame(wx.Frame):
 	def ShowGCode(self):
 		self.dlgGCode.Show()
 
+	def AddGCode(self, msg):
+		self.dlgGCode.AddItem(msg)
+
 	def OnBGCode(self, evt):
 		if self.dlgGCode.IsShown():
 			self.HideGCode()
 		else:
 			self.ShowGCode()
 
+	def HideJog(self):
+		print("hide jog")
+		self.dlgJog.Hide()
+
+	def ShowJog(self):
+		print("show jog")
+		self.dlgJog.Show()
+
+	def OnBJog(self):
+		if self.dlgJog.IsShown():
+			self.HideJog()
+		else:
+			self.ShowJog()
+
+	def OnMenuMacro(self, evt):
+		idx = evt.GetId()
+		try:
+			macro = self.macroMap[idx]
+		except KeyError:
+			print("unknown macro")
+			return
+
+		self.moonraker.SendGCode(macro)
+
+	def OnMenuBackupConfig(self, evt):
+		dlg = wx.DirDialog(self, "Choose an output directory:", style=wx.DD_DEFAULT_STYLE)
+		rc = dlg.ShowModal()
+		if rc == wx.ID_OK:
+			backupPath = dlg.GetPath()
+
+		dlg.Destroy()
+		if rc != wx.ID_OK:
+			return
+
+		fl = self.moonraker.FilesList(root="config")
+		fList = [f["path"] for f in fl if not f["path"].lower().endswith("bkp")]
+		for fn in fList:
+			self.LogItem("Downloading file %s..." % fn)
+			try:
+				fd = self.moonraker.FileDownload(fn, root="config")
+			except MoonrakerException as e:
+				dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+				dlg.ShowModal()
+				dlg.Destroy()
+				continue
+
+			cfn = os.path.join(backupPath, fn)
+			with open(cfn, "wb") as cfp:
+				cfp.write(fd.content)
+		self.LogItem("Configuration backup completed")
+
+	def OnMenuBLTouchDown(self, evt):
+		self.moonraker.SendGCode("BLTOUCH_DEBUG COMMAND=pin_down")
+
+	def OnMenuBLTouchUp(self, evt):
+		self.moonraker.SendGCode("BLTOUCH_DEBUG COMMAND=pin_up")
+
+	def OnMenuBLTouchSelfTest(self, evt):
+		self.moonraker.SendGCode("BLTOUCH_DEBUG COMMAND=self_test")
+
+	def OnMenuBLTouchReset(self, evt):
+		self.moonraker.SendGCode("BLTOUCH_DEBUG COMMAND=reset")
+
 	def Initialize(self):
 		self.initialized = False
 		self.closing = False
 		self.LogItem("Creating web socket to printer %s" % self.name)
-		self.moonraker = Moonraker(self.ip, self.port, self.name)
+		self.moonraker = Moonraker(self, self.ip, self.port, self.name)
 
 		rmp = {
 			"message": self.WSMessage,
@@ -183,6 +304,10 @@ class PrinterFrame(wx.Frame):
 
 	def LoadCurrentGCode(self):
 		self.gcFrame.OpenCurrent()
+
+	def EnableJogging(self, movement, extrusion):
+		self.dlgJog.enableMovementControls(movement)
+		self.dlgJog.enableExtrusionControls(extrusion and self.CanExtrude)
 
 	def WSMessage(self, jmsg):
 		evt = WSDeliveryEvent(data=jmsg)
@@ -235,6 +360,15 @@ class PrinterFrame(wx.Frame):
 					self.statFrame.UpdateStatus(p)
 					self.thermFrame.UpdateStatus(p)
 					self.fanFrame.UpdateStatus(p)
+					try:
+						c = p["extruder"]["can_extrude"]
+					except KeyError:
+						c = self.CanExtrude
+
+					if c != self.CanExtrude:
+						self.CanExtrude = c
+						self.dlgJog.SetCanExtrude(self.CanExtrude)
+						self.LogItem("Extrusion is now %s" % ("enabled." if c else "disabled."))
 
 					self.bEStop.Enable(self.statFrame.GetState() == "printing")
 
@@ -258,7 +392,7 @@ class PrinterFrame(wx.Frame):
 			try:
 				for msg in msgl:
 					if not msg.startswith("B:"):
-						self.dlgGCode.AddItem(msg)
+						self.AddGCode(msg)
 			except Exception as e:
 				self.LogItem("EXCEPTION %s MESSAGE: %s" % (str(e), str(msgl)))
 
@@ -375,11 +509,21 @@ class PrinterFrame(wx.Frame):
 		self.flFrame.SetMoonraker(self.moonraker)
 		self.statFrame.SetMoonraker(self.moonraker)
 		self.fanFrame.SetMoonraker(self.moonraker)
+		self.manualFrame.SetMoonraker(self.moonraker)
+		self.dlgJog.SetMoonraker(self.moonraker)
 
 		self.gcFrame.SetInitialValues(ivals)
 		self.flFrame.SetInitialValues(ivals)
 		self.statFrame.SetInitialValues(ivals)
 		self.fanFrame.SetInitialValues(ivals)
+
+		try:
+			c = ivals["extruder"]["can_extrude"]
+			self.CanExtrude = c
+		except KeyError:
+			pass
+
+		self.dlgJog.SetCanExtrude(self.CanExtrude)
 
 		self.notifyInitialized(True, self.name)
 		self.timer.Start(1000)
@@ -499,6 +643,21 @@ class PrinterFrame(wx.Frame):
 			pass
 
 		self.gcFrame.close()
+
+		try:
+			self.dlgLog.Destroy()
+		except:
+			pass
+
+		try:
+			self.dlgGCode.Destroy()
+		except:
+			pass
+
+		try:
+			self.dlgJog.Destroy()
+		except:
+			pass
 
 		self.closer(self.name)
 		self.Destroy()

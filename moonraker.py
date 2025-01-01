@@ -21,7 +21,8 @@ class MoonrakerException(Exception):
 
 
 class Moonraker:
-	def __init__(self, ip, port, name):
+	def __init__(self, parent, ip, port, name):
+		self.parent = parent
 		self.ip = ip
 		self.port = str(port)
 		self.name = name
@@ -439,17 +440,17 @@ class Moonraker:
 	def ClearFile(self):
 		return self.SendGCode("SDCARD_RESET_FILE")
 
-	def SendGCode(self, gcodecmd):
+	def SendGCode(self, gcodecmd, timeout=0.7):
+		self.parent.AddGCode(">> " + gcodecmd)
 		try:
-			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/gcode/script?script=" + urllib.parse.quote(gcodecmd), timeout=0.7)
+			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/gcode/script?script=" + urllib.parse.quote(gcodecmd), timeout=timeout)
 
 		except requests.exceptions.ReadTimeout:
-			raise MoonrakerException("Read timeout on printer gcode script")
+			print("read timeout")
+			return
 
 		except requests.exceptions.ConnectionError:
 			raise MoonrakerException("Unable to send GCode commands")
-
-		print(p.url)
 
 		if p.status_code >= 400:
 			raise MoonrakerException(getErrorMessage(p, "printer gcode script"))
@@ -469,6 +470,7 @@ class Moonraker:
 		if result != "ok":
 			msg = "Unexpected response from send gcode: %s" % p.text
 			raise MoonrakerException(msg)
+
 
 	def PrinterJobStatus(self, object="virtual_sdcard"):
 		try:

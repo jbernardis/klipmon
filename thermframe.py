@@ -1,6 +1,8 @@
 import wx
 
 from thermaldlg import ThermalDlg
+from heater import HeaterDlg
+from moonraker import MoonrakerException
 
 DATAPOINTS = 240 # 4 minutes
 BTNSZ = (100, 30)
@@ -125,6 +127,7 @@ class ThermalFrame (wx.StaticBox):
 		self.parent = parent
 		self.pname = pname
 		self.settings = settings
+		self.images = parent.images
 		self.psettings = self.settings.GetPrinterSettings((pname))
 		self.moonraker = None
 
@@ -140,6 +143,7 @@ class ThermalFrame (wx.StaticBox):
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(20)
 		self.thermList = ThermList(self)
+		self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnThermalDClick, self.thermList)
 		hsz.Add(self.thermList)
 		hsz.AddSpacer(20)
 		vsz.Add(hsz)
@@ -200,6 +204,36 @@ class ThermalFrame (wx.StaticBox):
 			n = h.GetName()
 			if n in jmsg:
 				h.UpdateCurrentValues(jmsg[n])
+
+	def OnThermalDClick(self, evt):
+		ci = evt.Index
+		if ci == wx.NOT_FOUND:
+			return
+		hn = self.thermList.GetItemText(ci)
+		try:
+			htr = self.heaterMap[hn]
+		except KeyError:
+			dlg = wx.MessageDialog(self, "Not a controllable heater", "Invalid heater", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		dlg = HeaterDlg(self, self.pname, hn, self.settings, self.images)
+		rc = dlg.ShowModal()
+		if rc != wx.ID_OK:
+			dlg.Destroy()
+			return
+
+		cmd = dlg.GetResults()
+		dlg.Destroy()
+
+		try:
+			self.moonraker.SendGCode(cmd)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
 
 	def onBThermals(self, evt):
 		dlg = ThermalDlg(self, self.pname, self.settings, self.moonraker)
