@@ -57,6 +57,7 @@ class PrinterFrame(wx.Frame):
 		self.heaterList = []
 		self.sensorList = []
 		self.objectStatus = {}
+		self.meshProfiles = []
 		self.timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self.onTimer, self.timer)
 
@@ -181,7 +182,7 @@ class PrinterFrame(wx.Frame):
 		self.Show()
 
 		self.dlgLog = ListDlg(self, "Log", [], self.HideLog)
-		self.dlgLog.Show()
+		self.dlgLog.Hide()
 
 		self.dlgGCode = ListDlg(self, "GCode Response", [], self.HideGCode, True)
 		self.dlgGCode.Hide()
@@ -383,6 +384,10 @@ class PrinterFrame(wx.Frame):
 				self.moonraker.close() # trigger a reconnection attempt
 				self.timer.Stop()
 
+		elif method == "notify_cpu_throttled":
+			self.LogItem("CPU Throttled")
+			self.LogItem(str(jmsg))
+
 		elif method in "notify_gcode_response":
 			try:
 				msgl = jmsg["params"]
@@ -414,6 +419,7 @@ class PrinterFrame(wx.Frame):
 			self.LogItem(e.message)
 			self.close()
 			raise
+
 		try:
 			kstat = si["result"]["klippy_state"]
 		except KeyError:
@@ -445,21 +451,21 @@ class PrinterFrame(wx.Frame):
 			self.close()
 
 	def SubscribeToPrinterObjects(self):
-		# try:
-		# 	objList = self.moonraker.PrinterObjectsList()
-		# except MoonrakerException as e:
-		# 	dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
-		# 	dlg.ShowModal()
-		# 	dlg.Destroy()
-		# 	objList = None
-		#
-		# if objList is None:
-		# 	self.LogItem("Unable to obtain object list")
-		# else:
-		# 	self.LogItem("Known objects:")
-		# 	for o in sorted(objList):
-		# 		self.LogItem("    %s" % o)
-		# 	self.LogItem("End of known objects")
+		try:
+			objList = self.moonraker.PrinterObjectsList()
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			objList = None
+
+		if objList is None:
+			self.LogItem("Unable to obtain object list")
+		else:
+			self.LogItem("Known objects:")
+			for o in sorted(objList):
+				self.LogItem("    %s" % o)
+			self.LogItem("End of known objects")
 
 		subList = (self.fanList + self.heaterList + self.sensorList + self.outputList +
 			["toolhead", "print_stats", "gcode_move"])
@@ -494,7 +500,7 @@ class PrinterFrame(wx.Frame):
 		self.tempGraph.initPlot(self.thermFrame.GetSensorMap(), self.thermFrame.GetHeaterMap())
 
 		try:
-			stat = self.moonraker.PrinterObjectStatus(subList)
+			stat = self.moonraker.PrinterObjectStatus(subList+["bed_mesh"])
 		except MoonrakerException as e:
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
@@ -503,6 +509,11 @@ class PrinterFrame(wx.Frame):
 			return
 
 		ivals = stat["result"]["status"]
+		try:
+			self.meshProfiles = list(ivals["bed_mesh"]["profiles"].keys())
+		except KeyError:
+			self.meshProfiles = []
+		self.LogItem("Available mesh profiles: %s" % ", ".join(self.meshProfiles))
 
 		self.gcFrame.SetMoonraker(self.moonraker)
 		self.thermFrame.SetMoonraker(self.moonraker)
@@ -660,4 +671,5 @@ class PrinterFrame(wx.Frame):
 			pass
 
 		self.closer(self.name)
+		self.Hide()
 		self.Destroy()

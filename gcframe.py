@@ -1,7 +1,6 @@
 import wx, math
 import os
-from subprocess import Popen
-
+import subprocess
 
 from moonraker import MoonrakerException
 from gcode import GCode, MOVE_MOVE, MOVE_PRINT, MOVE_EXTRUDE, MOVE_RETRACT
@@ -310,8 +309,7 @@ class GcFrame (wx.StaticBox):
 			cmd = [self.mplayer]
 			cmd.extend(self.mplayerOpts)
 			cmd.append(url)
-			#self.prMplayer = Popen([self.mplayer, "-loglevel", "quiet", url])
-			self.prMplayer = Popen(cmd)
+			self.prMplayer = subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
 		else:
 			try:
 				self.prMplayer.kill()
