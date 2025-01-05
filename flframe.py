@@ -3,11 +3,13 @@ import os
 import io
 
 from moonraker import MoonrakerException
+from editgcode import EditGCodeDlg
 
 MENU_PRINT = 1001
 MENU_PREHEAT = 1002
 MENU_DOWNLOAD = 1003
-MENU_REMOVE = 1004
+MENU_EDIT = 1004
+MENU_REMOVE = 1005
 
 BTNSZ = (100, 30)
 
@@ -34,6 +36,7 @@ class FlFrame (wx.StaticBox):
 		self.emptyBmp = self.MakeEmpty()
 		self.menuFileName = None
 		self.activeFn = None
+		self.editDlg = None
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
@@ -122,6 +125,10 @@ class FlFrame (wx.StaticBox):
 		item.SetFont(self.ftb)
 		menu.Append(item)
 
+		item = wx.MenuItem(menu, MENU_EDIT, "Edit")
+		item.SetFont(self.ftb)
+		menu.Append(item)
+
 		item = wx.MenuItem(menu, MENU_REMOVE, "Remove")
 		item.SetFont(self.ftb)
 		menu.Append(item)
@@ -129,6 +136,7 @@ class FlFrame (wx.StaticBox):
 		self.Bind(wx.EVT_MENU, self.OnMenuPrint, id=MENU_PRINT)
 		self.Bind(wx.EVT_MENU, self.OnMenuPreheat, id=MENU_PREHEAT)
 		self.Bind(wx.EVT_MENU, self.OnMenuDownload, id=MENU_DOWNLOAD)
+		self.Bind(wx.EVT_MENU, self.OnMenuEdit, id=MENU_EDIT)
 		self.Bind(wx.EVT_MENU, self.OnMenuRemove, id=MENU_REMOVE)
 
 		return menu
@@ -183,7 +191,7 @@ class FlFrame (wx.StaticBox):
 
 		sdir = self.settings.LastDir()
 		dlg = wx.FileDialog(
-			self, message="Save file as ...", defaultDir=sidr,
+			self, message="Save file as ...", defaultDir=sdir,
 			defaultFile="", wildcard=wildcard, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
 		)
 		rc = dlg.ShowModal()
@@ -208,6 +216,60 @@ class FlFrame (wx.StaticBox):
 		dlg = wx.MessageDialog(self, "File %s" % path, "Download Successful", wx.OK | wx.ICON_EXCLAMATION)
 		dlg.ShowModal()
 		dlg.Destroy()
+
+	def OnMenuEdit(self, evt):
+		if self.menuFileName is None:
+			return
+
+		try:
+			r = self.moonraker.FileDownload(self.menuFileName)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		gcstring = r.content.decode('utf-8')
+		gcode = gcstring.split("\n")
+		self.editDlg = EditGCodeDlg(self, gcode, "Edit GCode: %s" % self.menuFileName, self.EditClose)
+		self.editDlg.Show()
+
+	def EditClose(self, rc):
+		if rc == wx.ID_CANCEL:
+			self.editDlg.Destroy()
+			self.editDlg = None
+			return
+
+		gcode = self.editDlg.getData()
+
+		try:
+			self.editDlg.Destroy()
+		except:
+			pass
+
+		self.editDlg = None
+
+		with open(self.menuFileName, "w") as ofp:
+			ofp.write("\n".join(gcode))
+
+		try:
+			fp = open(self.menuFileName, "rb")
+		except Exception as e:
+			dlg = wx.MessageDialog(self, str(e), "File I/O error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+
+		try:
+			self.moonraker.FileUpload(self.menuFileName, fp)
+		except MoonrakerException as e:
+			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+
+		fp.close()
+
+		os.unlink(self.menuFileName)
 
 	def OnBUpload(self, evt):
 		wildcard = "G Code files (*.gcode)|*.gcode|" \

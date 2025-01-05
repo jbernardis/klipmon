@@ -1,5 +1,5 @@
 import wx
-import json
+import time
 
 BTNSZ = (100, 30)
 
@@ -58,6 +58,8 @@ class StatFrame (wx.StaticBox):
 		self.GCPosition = None
 		self.GCGPosition = None
 		self.zoffset = 0.0
+		self.estimated = None
+		self.printtime = None
 
 		self.parent = parent
 		self.pname = pname
@@ -153,6 +155,28 @@ class StatFrame (wx.StaticBox):
 		self.stEDur = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stEDur.SetFont(self.ft)
 		lnsz.Add(self.stEDur)
+		metasz.Add(lnsz)
+
+		metasz.AddSpacer(5)
+		lnsz = wx.BoxSizer(wx.HORIZONTAL)
+		st = wx.StaticText(self, wx.ID_ANY, "Remaining: ", size=(150, -1), style=wx.ALIGN_RIGHT)
+		st.SetFont(self.ftb)
+		lnsz.Add(st)
+		lnsz.AddSpacer(10)
+		self.stRemaining = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
+		self.stRemaining.SetFont(self.ft)
+		lnsz.Add(self.stRemaining)
+		metasz.Add(lnsz)
+
+		metasz.AddSpacer(5)
+		lnsz = wx.BoxSizer(wx.HORIZONTAL)
+		st = wx.StaticText(self, wx.ID_ANY, "ETA: ", size=(150, -1), style=wx.ALIGN_RIGHT)
+		st.SetFont(self.ftb)
+		lnsz.Add(st)
+		lnsz.AddSpacer(10)
+		self.stETA = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
+		self.stETA.SetFont(self.ft)
+		lnsz.Add(self.stETA)
 		metasz.Add(lnsz)
 
 		metasz.AddSpacer(15)
@@ -335,6 +359,18 @@ class StatFrame (wx.StaticBox):
 		self.stTDur.SetLabel(formatTime(self.totalduration))
 		self.stPDur.SetLabel(formatTime(self.printduration))
 		self.stUFil.SetLabel("%9.2f" % self.filamentused)
+		if self.estimated is not None:
+			remaining = self.estimated - self.printduration
+			if remaining > 0:
+				self.stRemaining.SetLabel(formatTime(remaining))
+				now = time.time()
+				eta = now + remaining
+				etaStr = time.strftime("%I:%M:%S%p", time.localtime(eta))
+				self.stETA.SetLabel(etaStr)
+				self.stRemaining.SetLabel(formatTime(remaining))
+			else:
+				self.stRemaining.SetLabel("")
+				self.stETA.SetLabel("")
 
 		if self.totallayers is None and self.currentlayer is None:
 			self.stLayer.SetLabel("")
@@ -386,9 +422,13 @@ class StatFrame (wx.StaticBox):
 		else:
 			try:
 				s = self.activeMeta["printtime"]
+				self.estimated = s
 				self.stEDur.SetLabel(formatTime(s))
 			except KeyError:
 				self.stEDur.SetLabel("")
+				self.estimated = None
+				self.stRemaining.SetLabel("")
+				self.stETA.SetLabel("")
 
 			try:
 				s = self.activeMeta["height"]

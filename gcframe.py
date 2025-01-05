@@ -45,6 +45,7 @@ class GcFrame (wx.StaticBox):
 		self.mplayerOpts = self.settings.GetSetting("mplayeropts")
 
 		self.followprint = False
+		self.followable = False
 		self.ppos = 0
 		self.progress = 0.0
 		self.gcode = None
@@ -197,8 +198,8 @@ class GcFrame (wx.StaticBox):
 
 		self.ppos = pos
 		self.progress = prog
-		self.gcPanel.setPrintPosition(pos)
-		if self.followprint:
+		if self.followable and self.followprint:
+			self.gcPanel.setPrintPosition(pos)
 			if self.gcode is not None:
 				l = self.gcode.findLayerByOffset(pos)[0]
 				self.slLayer.SetValue(l)
@@ -345,6 +346,7 @@ class GcFrame (wx.StaticBox):
 
 	def loadGCode(self, gcode, followable):
 		self.gcode = gcode
+		self.followable = followable
 		if gcode is None:
 			self.slLayer.Enable(False)
 			return
@@ -469,6 +471,9 @@ class GcPanel (wx.Panel):
 		self.redrawCurrentLayer()
 
 	def setPrintPosition(self, pos):
+		if pos == self.printPosition:
+			return # nothing has changed - don't redraw anything
+
 		self.printPosition = pos
 		if self.followprint:
 			lx = self.gcode.findLayerByOffset(pos)[0]

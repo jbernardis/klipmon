@@ -111,7 +111,8 @@
             "port": 7125,
             "hasbltouch": true,
             "macros": {
-                "Bed Level": "Z_TILT_ADJUST"
+                "Bed Level": "Z_TILT_ADJUST",
+                "Lights toggle": "LIGHTS"
             },
             "gcode": {
                 "showmoves": true,
@@ -184,7 +185,12 @@
             "xyspeed": 1000,
             "zspeed": 300,
             "espeed": 300,
-            "elength": 5
+            "elength": 5,
+            "nExtr": 1,
+            "acceleration": 1500,
+            "filamentdiameter": 1.75,
+            "g28time": 15,
+            "g29time": 60
         }
     }
 }

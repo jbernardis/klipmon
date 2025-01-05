@@ -34,7 +34,7 @@ MENU_TOOLS_BLTOUCH_RESET = 1314
 
 
 class PrinterFrame(wx.Frame):
-	def __init__(self, name, settings, cbmap):
+	def __init__(self, name, settings, closer):
 		wx.Frame.__init__(self, None, title="Klipper Monitor - %s" % name)
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
@@ -60,12 +60,12 @@ class PrinterFrame(wx.Frame):
 		self.meshProfiles = []
 		self.timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self.onTimer, self.timer)
+		self.logText = None
 
 		self.ip = self.psettings["ip"]
 		self.port = str(self.psettings["port"])
 		self.name = name
-		self.closer = cbmap["closer"]
-		self.notifyInitialized = cbmap["init"]
+		self.closer = closer
 		self.baseUrl = "http://%s" % self.ip
 
 		self.Bind(EVT_WSDELIVERY, self.onWSDeliveryEvent)
@@ -479,7 +479,7 @@ class PrinterFrame(wx.Frame):
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
 			dlg.Destroy()
-			self.notifyInitialized(False, self.name)
+			self.close(False)
 			return
 
 		status = sub["result"]["status"]
@@ -491,7 +491,7 @@ class PrinterFrame(wx.Frame):
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
 			dlg.Destroy()
-			self.notifyInitialized(False, self.name)
+			self.close(False)
 			return
 
 		self.thermFrame.SetHeaters(self.heaterList)
@@ -505,7 +505,7 @@ class PrinterFrame(wx.Frame):
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
 			dlg.Destroy()
-			self.notifyInitialized(False, self.name)
+			self.close(False)
 			return
 
 		ivals = stat["result"]["status"]
@@ -513,7 +513,10 @@ class PrinterFrame(wx.Frame):
 			self.meshProfiles = list(ivals["bed_mesh"]["profiles"].keys())
 		except KeyError:
 			self.meshProfiles = []
-		self.LogItem("Available mesh profiles: %s" % ", ".join(self.meshProfiles))
+		if len(self.meshProfiles) == 0:
+			self.LogItem("No available mesh profiles")
+		else:
+			self.LogItem("Available mesh profiles: %s" % ", ".join(self.meshProfiles))
 
 		self.gcFrame.SetMoonraker(self.moonraker)
 		self.thermFrame.SetMoonraker(self.moonraker)
@@ -536,7 +539,6 @@ class PrinterFrame(wx.Frame):
 
 		self.dlgJog.SetCanExtrude(self.CanExtrude)
 
-		self.notifyInitialized(True, self.name)
 		self.timer.Start(1000)
 
 	def onTimer(self, evt):
@@ -617,13 +619,14 @@ class PrinterFrame(wx.Frame):
 		wx.CallLater(3000, self.ReConnect)
 
 	def ReConnect(self):
-		self.moonraker.SendGCode("FIRMWARE_RESTART")
-		wx.CallLater(3000, self.Initialize)
+		if not self.closing:
+			self.moonraker.SendGCode("FIRMWARE_RESTART")
+			wx.CallLater(3000, self.Initialize)
 
 	def onWSErrorEvent(self, evt):
 		self.LogItem("websocket error: %s" % evt.data)
 		if not self.initialized:
-			self.close()
+			self.close(False)
 
 	def OnBEStop(self, evt):
 		dlg = wx.MessageDialog(self, "Are you sure you want to Emergency Stop?\nPress \"Yes\" to proceed",
@@ -638,10 +641,11 @@ class PrinterFrame(wx.Frame):
 	def onClose(self, evt):
 		self.close()
 
-	def close(self):
+	def close(self, rc=True):
 		if self.closing:
 			return
 		self.closing = True
+		self.logText = self.dlgLog.GetText()
 
 		try:
 			self.timer.Stop()
@@ -670,6 +674,7 @@ class PrinterFrame(wx.Frame):
 		except:
 			pass
 
-		self.closer(self.name)
-		self.Hide()
-		self.Destroy()
+		self.closer(rc)
+
+	def GetLogText(self):
+		return self.logText

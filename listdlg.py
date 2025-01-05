@@ -69,6 +69,9 @@ class ListDlg(wx.Dialog):
         
     def OnBExit(self, _):
         self.DoClose()
+
+    def GetText(self):
+        return self.tcList.GetValue()
         
     def DoClose(self):
         self.dlgexit()
