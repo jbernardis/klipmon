@@ -1,5 +1,6 @@
 import wx
 import time
+import json
 
 BTNSZ = (100, 30)
 
@@ -60,6 +61,7 @@ class StatFrame (wx.StaticBox):
 		self.zoffset = 0.0
 		self.estimated = None
 		self.printtime = None
+		self.rbx = None
 
 		self.parent = parent
 		self.pname = pname
@@ -206,7 +208,7 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Layer: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(20)
 		self.stLayer = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stLayer.SetFont(self.ft)
 		lnsz.Add(self.stLayer)
@@ -249,6 +251,7 @@ class StatFrame (wx.StaticBox):
 		hsz.Add(self.Gauge)
 		hsz.AddSpacer(10)
 		self.Percent = wx.StaticText(self, wx.ID_ANY, "0%")
+		self.Percent.SetFont(self.ftb)
 		hsz.Add(self.Percent)
 		vsz.Add(hsz, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
@@ -289,6 +292,7 @@ class StatFrame (wx.StaticBox):
 		sz = wx.BoxSizer(wx.HORIZONTAL)
 		self.rbx = wx.RadioBox(self, wx.ID_ANY,"step size", choices=["0.005", "0.01", "0.025", "0.05"],
 							majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+		self.rbx.SetFont(self.ft)
 		sz.Add(self.rbx)
 		sz.AddSpacer(10)
 
@@ -360,7 +364,15 @@ class StatFrame (wx.StaticBox):
 		self.stPDur.SetLabel(formatTime(self.printduration))
 		self.stUFil.SetLabel("%9.2f" % self.filamentused)
 		if self.estimated is not None:
-			remaining = self.estimated - self.printduration
+			if self.progress > 0.2:
+				# calculate remaining once we hit 20% done using the amount of
+				# time it took for us to get here
+				totalDur = float(self.printduration) / float(self.progress)
+				remaining = totalDur - self.printduration
+			else:
+				# else just use the printduration and estimated from moonraker
+				remaining = self.estimated - self.printduration
+
 			if remaining > 0:
 				self.stRemaining.SetLabel(formatTime(remaining))
 				now = time.time()
@@ -368,13 +380,17 @@ class StatFrame (wx.StaticBox):
 				etaStr = time.strftime("%I:%M:%S%p", time.localtime(eta))
 				self.stETA.SetLabel(etaStr)
 				self.stRemaining.SetLabel(formatTime(remaining))
+
 			else:
 				self.stRemaining.SetLabel("")
 				self.stETA.SetLabel("")
+		else:
+			self.stRemaining.SetLabel("")
+			self.stETA.SetLabel("")
 
 		if self.totallayers is None and self.currentlayer is None:
 			self.stLayer.SetLabel("")
-		elif self.currentlayer is not None:
+		elif self.totallayers is None:
 			self.stLayer.SetLabel("%d" % int(self.currentlayer))
 		else:
 			self.stLayer.SetLabel("%d/%d" % (int(self.currentlayer), int(self.totallayers)))
@@ -599,7 +615,7 @@ class StatFrame (wx.StaticBox):
 		try:
 			zo = self.GCPosition[2] - self.GCGPosition[2]
 		except Exception as e:
-			print("Exception %s encountered trying to calculate z offset" % str(e))
+			self.parent.LogItem("Exception %s encountered trying to calculate z offset" % str(e))
 			return
 
 		self.zoffset = zo

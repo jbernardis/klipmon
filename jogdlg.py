@@ -374,6 +374,7 @@ class JogDlg(wx.Frame):
 			if not self.CanExtrude:
 				self.axisE.enableControls(True)
 			self.parent.LogItem("Cold Extrusion Enabled")
+			self.parent.AddGCode("Cold Extrusion Enabled")
 			try:
 				self.moonraker.SendGCode("M302 S0")
 			except:
@@ -386,6 +387,7 @@ class JogDlg(wx.Frame):
 			if not self.CanExtrude:
 				self.axisE.enableControls(False)
 			self.parent.LogItem("Cold Extrusion Disabled")
+			self.parent.AddGCode("Cold Extrusion Disabled")
 			try:
 				self.moonraker.SendGCode("M302 S170")
 			except:

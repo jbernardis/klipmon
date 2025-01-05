@@ -369,7 +369,9 @@ class PrinterFrame(wx.Frame):
 					if c != self.CanExtrude:
 						self.CanExtrude = c
 						self.dlgJog.SetCanExtrude(self.CanExtrude)
-						self.LogItem("Extrusion is now %s" % ("enabled." if c else "disabled."))
+						m = "Extrusion is now %s" % ("enabled." if c else "disabled.")
+						self.LogItem(m)
+						self.AddGCode(m)
 
 					self.bEStop.Enable(self.statFrame.GetState() == "printing")
 
