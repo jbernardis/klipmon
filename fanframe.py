@@ -98,8 +98,17 @@ class FanFrame (wx.StaticBox):
 		self.SetLabel(self.titleText)
 		topBorder, otherBorder = self.GetBordersForSizer()
 
-		self.ftb = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
-		self.ft = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft  = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
 
 		self.parent = parent
 		self.pname = pname
@@ -124,7 +133,7 @@ class FanFrame (wx.StaticBox):
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		col = 0
@@ -136,7 +145,7 @@ class FanFrame (wx.StaticBox):
 			st = wx.StaticText(self, wx.ID_ANY, fname, size=(110, -1), style=wx.ALIGN_RIGHT)
 			st.SetFont(self.ftb)
 			hsz.Add(st)
-			hsz.AddSpacer(20)
+			hsz.AddSpacer(self.hspacing)
 			if f.controllable:
 				sl = MySlider(self, 100 if f.pwm else 1)
 				self.Bind(wx.EVT_SCROLL_CHANGED, self.onScrollChanged, sl)
@@ -151,18 +160,14 @@ class FanFrame (wx.StaticBox):
 
 			col = 1 - col
 			if col == 0:
-				hsz.AddSpacer(20)
+				hsz.AddSpacer(self.hspacing)
 				vsz.Add(hsz)
 				hsz = wx.BoxSizer(wx.HORIZONTAL)
 
 		if col == 1:
 			vsz.Add(hsz)
 
-		hsz.AddSpacer(20)
-		vsz.Add(hsz)
-
-		vsz.AddSpacer(20)
-
+		vsz.AddSpacer(5)
 		self.SetSizer(vsz)
 		self.Layout()
 		self.Fit()

@@ -2,7 +2,7 @@ import wx
 import time
 import json
 
-BTNSZ = (100, 30)
+BTNSZ = (70, 30)
 
 
 def MakeEmpty():
@@ -71,29 +71,38 @@ class StatFrame (wx.StaticBox):
 
 		self.emptyBmp = MakeEmpty()
 
-		self.ftb = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
-		self.ft  = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft  = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		fnhz = wx.BoxSizer(wx.VERTICAL)
 		self.stState = wx.StaticText(self, wx.ID_ANY, "", size=(200, -1))
 		self.stState.SetFont(self.ftb)
 		fnhz.Add(self.stState)
-		fnhz.AddSpacer(20)
+		fnhz.AddSpacer(self.vspacing)
 
 		self.stFileName = wx.StaticText(self, wx.ID_ANY, "", size=(200, -1))
 		self.stFileName.SetFont(self.ftb)
 		fnhz.Add(self.stFileName, 0, wx.ALIGN_CENTER_HORIZONTAL)
-		fnhz.AddSpacer(10)
+		fnhz.AddSpacer(int(self.vspacing/2))
 
 		self.bmp = wx.StaticBitmap(self, wx.ID_ANY, size=(200, 200))
 		fnhz.Add(self.bmp, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
 		possz = wx.BoxSizer(wx.HORIZONTAL)
-		possz.AddSpacer(20)
+		possz.AddSpacer(self.vspacing)
 
 		self.stLabelX = wx.StaticText(self, wx.ID_ANY, "X:")
 		self.stLabelX.SetFont(self.ftb)
@@ -121,17 +130,17 @@ class StatFrame (wx.StaticBox):
 		self.stPosZ.SetFont(self.ftb)
 		possz.Add(self.stPosZ)
 
-		possz.AddSpacer(20)
+		possz.AddSpacer(self.hspacing)
 
 		metasz = wx.BoxSizer(wx.VERTICAL)
 		metasz.Add(possz)
 
-		metasz.AddSpacer(30)
+		metasz.AddSpacer(self.vspacing+10)
 		lnsz = wx.BoxSizer(wx.HORIZONTAL)
 		st = wx.StaticText(self, wx.ID_ANY, "Total Duration: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stTDur = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stTDur.SetFont(self.ft)
 		lnsz.Add(self.stTDur)
@@ -142,7 +151,7 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Print Duration: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stPDur = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stPDur.SetFont(self.ft)
 		lnsz.Add(self.stPDur)
@@ -153,7 +162,7 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Estimate: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stEDur = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stEDur.SetFont(self.ft)
 		lnsz.Add(self.stEDur)
@@ -164,7 +173,7 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Remaining: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stRemaining = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stRemaining.SetFont(self.ft)
 		lnsz.Add(self.stRemaining)
@@ -175,18 +184,18 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "ETA: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stETA = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stETA.SetFont(self.ft)
 		lnsz.Add(self.stETA)
 		metasz.Add(lnsz)
 
-		metasz.AddSpacer(15)
+		metasz.AddSpacer(self.vspacing)
 		lnsz = wx.BoxSizer(wx.HORIZONTAL)
 		st = wx.StaticText(self, wx.ID_ANY, "Total Height: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stTHt = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stTHt.SetFont(self.ft)
 		lnsz.Add(self.stTHt)
@@ -197,7 +206,7 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Layer Height: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
+		lnsz.AddSpacer(int(self.hspacing/2))
 		self.stLHt = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stLHt.SetFont(self.ft)
 		lnsz.Add(self.stLHt)
@@ -208,19 +217,19 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Layer: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(20)
+		lnsz.AddSpacer(self.hspacing)
 		self.stLayer = wx.StaticText(self, wx.ID_ANY, size=(60, -1))
 		self.stLayer.SetFont(self.ft)
 		lnsz.Add(self.stLayer)
 		metasz.Add(lnsz)
 
-		metasz.AddSpacer(15)
+		metasz.AddSpacer(self.vspacing)
 		lnsz = wx.BoxSizer(wx.HORIZONTAL)
 		st = wx.StaticText(self, wx.ID_ANY, "Total Filament: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
-		self.stTFil = wx.StaticText(self, wx.ID_ANY, size=(100, -1))
+		lnsz.AddSpacer(int(self.hspacing/2))
+		self.stTFil = wx.StaticText(self, wx.ID_ANY, size=(80, -1))
 		self.stTFil.SetFont(self.ft)
 		lnsz.Add(self.stTFil)
 		metasz.Add(lnsz)
@@ -230,59 +239,71 @@ class StatFrame (wx.StaticBox):
 		st = wx.StaticText(self, wx.ID_ANY, "Filament Used: ", size=(150, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		lnsz.Add(st)
-		lnsz.AddSpacer(10)
-		self.stUFil = wx.StaticText(self, wx.ID_ANY, size=(100, -1))
+		lnsz.AddSpacer(int(self.hspacing/2))
+		self.stUFil = wx.StaticText(self, wx.ID_ANY, size=(80, -1))
 		self.stUFil.SetFont(self.ft)
 		lnsz.Add(self.stUFil)
 		metasz.Add(lnsz)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 		hsz.Add(fnhz)
-		hsz.AddSpacer(10)
+		hsz.AddSpacer(int(self.hspacing/2))
 		hsz.Add(metasz)
 
 		vsz.Add(hsz)
-		vsz.AddSpacer(10)
+		vsz.AddSpacer(int(self.hspacing/2))
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		self.Gauge = wx.Gauge(self, wx.ID_ANY, range=100, size=(300, 20), style = wx.GA_HORIZONTAL + wx.GA_TEXT)
 		self.Gauge.SetValue(0)
 		hsz.Add(self.Gauge)
-		hsz.AddSpacer(10)
+		hsz.AddSpacer(int(self.hspacing/2))
 		self.Percent = wx.StaticText(self, wx.ID_ANY, "0%")
 		self.Percent.SetFont(self.ftb)
 		hsz.Add(self.Percent)
 		vsz.Add(hsz, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		btnsz = wx.BoxSizer(wx.HORIZONTAL)
 
 		self.bStart = wx.Button(self, wx.ID_ANY, "Start", size=BTNSZ)
+		self.bStart.SetFont(self.ftb)
 		self.Bind(wx.EVT_BUTTON, self.OnBStart, self.bStart)
 		self.bPause = wx.Button(self, wx.ID_ANY, "Pause", size=BTNSZ)
+		self.bPause.SetFont(self.ftb)
 		self.Bind(wx.EVT_BUTTON, self.OnBPause, self.bPause)
 		self.bClear = wx.Button(self, wx.ID_ANY, "Clear", size=BTNSZ)
+		self.bClear.SetFont(self.ftb)
 		self.Bind(wx.EVT_BUTTON, self.OnBClear, self.bClear)
 		self.bJog = wx.Button(self, wx.ID_ANY, "Jog", size=BTNSZ)
+		self.bJog.SetFont(self.ftb)
 		self.Bind(wx.EVT_BUTTON, self.OnBJog, self.bJog)
+		self.bEStop = wx.Button(self, wx.ID_ANY, "ESTOP", size=BTNSZ)
+		self.bEStop.SetBackgroundColour(wx.Colour((255, 0, 0)))
+		self.bEStop.SetForegroundColour(wx.Colour((0, 0, 0)))
+		self.bEStop.SetFont(self.ftb)
+		self.bEStop.Enable(False)
+		self.Bind(wx.EVT_BUTTON, self.OnBEStop, self.bEStop)
 
 		btnsz.Add(self.bStart)
-		btnsz.AddSpacer(20)
+		btnsz.AddSpacer(self.hspacing)
 		btnsz.Add(self.bPause)
-		btnsz.AddSpacer(20)
+		btnsz.AddSpacer(self.hspacing)
 		btnsz.Add(self.bClear)
-		btnsz.AddSpacer(20)
+		btnsz.AddSpacer(self.hspacing)
 		btnsz.Add(self.bJog)
+		btnsz.AddSpacer(self.hspacing)
+		btnsz.Add(self.bEStop)
 
 		vsz.Add(btnsz, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-		vsz.AddSpacer(10)
+		vsz.AddSpacer(int(self.vspacing/2))
 
 		vsz.Add(self.ZOffset(), 0, wx.ALIGN_CENTER_HORIZONTAL)
 
-		vsz.AddSpacer(10)
+		vsz.AddSpacer(int(self.vspacing/2))
 
 		self.SetSizer(vsz)
 		self.Layout()
@@ -297,11 +318,13 @@ class StatFrame (wx.StaticBox):
 		sz.AddSpacer(10)
 
 		self.bUp = wx.Button(self, wx.ID_ANY, "up", size=(30, 30))
+		self.bUp.SetFont(self.ft)
 		self.Bind(wx.EVT_BUTTON, self.OnBUp, self.bUp)
 		sz.Add(self.bUp, 0, wx.ALIGN_CENTER_VERTICAL)
 		sz.AddSpacer(10)
 
 		self.bDn = wx.Button(self, wx.ID_ANY, "dn", size=(30, 30))
+		self.bDn.SetFont(self.ft)
 		self.Bind(wx.EVT_BUTTON, self.OnBDn, self.bDn)
 		sz.Add(self.bDn, 0, wx.ALIGN_CENTER_VERTICAL)
 
@@ -358,6 +381,16 @@ class StatFrame (wx.StaticBox):
 
 	def OnBJog(self, evt):
 		self.parent.OnBJog()
+
+	def OnBEStop(self, evt):
+		dlg = wx.MessageDialog(self, "Are you sure you want to Emergency Stop?\nPress \"Yes\" to proceed",
+							   "Emergency Stop Confirmation", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+		rc = dlg.ShowModal()
+		dlg.Destroy()
+		if rc == wx.ID_NO:
+			return
+
+		self.moonraker.EmergencyStop()
 
 	def Ticker(self):
 		self.stTDur.SetLabel(formatTime(self.totalduration))
@@ -558,7 +591,6 @@ class StatFrame (wx.StaticBox):
 		if "gcode_move" in ivals:
 			self.ParseGCodeMove(ivals["gcode_move"])
 
-
 	def ParsePrintStats(self, pstats):
 		try:
 			fn = pstats["filename"]
@@ -577,6 +609,7 @@ class StatFrame (wx.StaticBox):
 		if st is not None and (st != self.state or self.cancelling):
 			self.state = st
 			self.UpdateState()
+			self.bEStop.Enable(st == "printing")
 
 		try:
 			self.printduration = pstats["print_duration"]

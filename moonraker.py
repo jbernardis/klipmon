@@ -538,3 +538,59 @@ class Moonraker:
 			raise MoonrakerException(getErrorMessage(r, "server files delete"))
 
 		return True
+
+	def GetHistoryTotals(self):
+		try:
+			r = self.session.get("http://" + self.ip + ":" + self.port + "/server/history/totals", timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on get history totals")
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send history Totals request")
+
+		if r.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(r, "server history totals"))
+
+		try:
+			return r.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse history totals return message as JSON")
+
+	def GetHistoryList(self, limit, start):
+		try:
+			url = "http://" + self.ip + ":" + self.port + "/server/history/list?limit=%s&start=%d&order=asc" % (limit, start)
+			r = self.session.get(url, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on get history list")
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send history list request")
+
+		if r.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(r, "server history list"))
+
+		try:
+			return r.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse history list return message as JSON")
+
+	def GetHistoryJob(self, jobid):
+		try:
+			url = "http://" + self.ip + ":" + self.port + "/server/history/job?uid=%s" % jobid
+			r = self.session.get(url, timeout=0.7)
+
+		except requests.exceptions.ReadTimeout:
+			raise MoonrakerException("Read timeout on get history job")
+
+		except requests.exceptions.ConnectionError:
+			raise MoonrakerException("Unable to send history job request")
+
+		if r.status_code >= 400:
+			raise MoonrakerException(getErrorMessage(r, "server history job"))
+
+		try:
+			return r.json()
+		except json.decoder.JSONDecodeError:
+			raise MoonrakerException("Unable to parse history job return message as JSON")

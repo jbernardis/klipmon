@@ -23,8 +23,17 @@ class FlFrame (wx.StaticBox):
 		self.SetLabel(self.titleText)
 		topBorder, otherBorder = self.GetBordersForSizer()
 
-		self.ftb = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
-		self.ft = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft  = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
 
 		self.parent = parent
 		self.pname = pname
@@ -40,70 +49,74 @@ class FlFrame (wx.StaticBox):
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
-		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
+		flsz = wx.BoxSizer(wx.HORIZONTAL)
+
+		flsz.AddSpacer(self.hspacing)
 		self.lcFiles = FileList(self)
-		hsz.Add(self.lcFiles)
-		hsz.AddSpacer(20)
-		vsz.Add(hsz)
+		flsz.Add(self.lcFiles)
+		flsz.AddSpacer(self.hspacing)
 
+		metasz = wx.BoxSizer(wx.VERTICAL)
 
-		vsz.AddSpacer(10)
 		hsz2 = wx.BoxSizer(wx.HORIZONTAL)
-		hsz2.AddSpacer(20)
-		st = wx.StaticText(self, wx.ID_ANY, "Object Height: ", size=(130, -1), style=wx.ALIGN_RIGHT)
+		hsz2.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Object Height: ", size=(100, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		hsz2.Add(st)
-		self.stObjHt = wx.StaticText(self, wx.ID_ANY, "", size=(150, -1))
+		self.stObjHt = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
 		self.stObjHt.SetFont(self.ft)
 		hsz2.Add(self.stObjHt)
-		vsz.Add(hsz2)
+		metasz.Add(hsz2)
 
-		vsz.AddSpacer(5)
+		metasz.AddSpacer(5)
 		hsz2 = wx.BoxSizer(wx.HORIZONTAL)
-		hsz2.AddSpacer(20)
-		st = wx.StaticText(self, wx.ID_ANY, "Print Estimate: ", size=(130, -1), style=wx.ALIGN_RIGHT)
+		hsz2.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Print Estimate: ", size=(100, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		hsz2.Add(st)
-		self.stPrtTime = wx.StaticText(self, wx.ID_ANY, "", size=(150, -1))
+		self.stPrtTime = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
 		self.stPrtTime.SetFont(self.ft)
 		hsz2.Add(self.stPrtTime)
-		vsz.Add(hsz2)
+		metasz.Add(hsz2)
 
-		vsz.AddSpacer(5)
+		metasz.AddSpacer(5)
 		hsz2 = wx.BoxSizer(wx.HORIZONTAL)
-		hsz2.AddSpacer(20)
-		st = wx.StaticText(self, wx.ID_ANY, "Layer Height: ", size=(130, -1), style=wx.ALIGN_RIGHT)
+		hsz2.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Layer Height: ", size=(100, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		hsz2.Add(st)
-		self.stLayerHt = wx.StaticText(self, wx.ID_ANY, "", size=(150, -1))
+		self.stLayerHt = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
 		self.stLayerHt.SetFont(self.ft)
 		hsz2.Add(self.stLayerHt)
-		vsz.Add(hsz2)
+		metasz.Add(hsz2)
 
-		vsz.AddSpacer(5)
+		metasz.AddSpacer(5)
 		hsz2 = wx.BoxSizer(wx.HORIZONTAL)
-		hsz2.AddSpacer(20)
-		st = wx.StaticText(self, wx.ID_ANY, "Total Filament: ", size=(130, -1), style=wx.ALIGN_RIGHT)
+		hsz2.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Total Filament: ", size=(100, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		hsz2.Add(st)
-		self.stFilament = wx.StaticText(self, wx.ID_ANY, "", size=(150, -1))
+		self.stFilament = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
 		self.stFilament.SetFont(self.ft)
 		hsz2.Add(self.stFilament)
-		vsz.Add(hsz2)
+		metasz.Add(hsz2)
 
-		vsz.AddSpacer(10)
+		metasz.AddSpacer(int(self.vspacing/2))
 		self.bmp = wx.StaticBitmap(self, wx.ID_ANY, size=(200, 200))
-		vsz.Add(self.bmp, 0, wx.ALIGN_CENTER_HORIZONTAL)
-		vsz.AddSpacer(10)
+		metasz.Add(self.bmp, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		metasz.AddSpacer(int(self.vspacing/2))
+
+		flsz.Add(metasz)
+		flsz.AddSpacer(self.hspacing)
+		vsz.Add(flsz)
 
 		self.bUpload = wx.Button(self, wx.ID_ANY, "Upload", size=BTNSZ)
 		self.bUpload.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.OnBUpload, self.bUpload)
 		vsz.Add(self.bUpload, 0, wx.ALIGN_CENTER_HORIZONTAL)
-		vsz.AddSpacer(10)
+		vsz.AddSpacer(int(self.vspacing/2))
 
 		self.SetSizer(vsz)
 		self.Layout()
@@ -496,7 +509,9 @@ class FileList (wx.ListCtrl):
 	def __init__(self, parent):
 		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=(300, 300), \
 				style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES | wx.LC_NO_HEADER | wx.LC_SINGLE_SEL)
-		self.SetFont(wx.Font(wx.Font(16, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")))
+
+		ptsz = 12 if wx.DisplaySize()[1] == 1440 else 9
+		self.SetFont(wx.Font(wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")))
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.moonraker = None

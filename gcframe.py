@@ -32,6 +32,18 @@ class GcFrame (wx.StaticBox):
 		self.SetLabel(self.titleText)
 		topBorder, otherBorder = self.GetBordersForSizer()
 
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft  = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+
 		self.parent = parent
 		self.pname = pname
 		self.settings = settings
@@ -70,101 +82,135 @@ class GcFrame (wx.StaticBox):
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 		self.bOpenPrinter = wx.Button(self, wx.ID_ANY, "Printer File", size=BTNSZ)
+		self.bOpenPrinter.SetFont(self.ftb)
 		self.bOpenPrinter.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.bOpenPrinter.Enable(False)
 		self.Bind(wx.EVT_BUTTON, self.onBOpenPrinter, self.bOpenPrinter)
 		hsz.Add(self.bOpenPrinter)
-		hsz.AddSpacer(20)
+
+		hsz.AddSpacer(self.hspacing)
 		self.bOpenCurrent = wx.Button(self, wx.ID_ANY, "Current File", size=BTNSZ)
+		self.bOpenCurrent.SetFont(self.ftb)
 		self.bOpenCurrent.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.bOpenCurrent.Enable(False)
 		self.Bind(wx.EVT_BUTTON, self.onBOpenCurrent, self.bOpenCurrent)
 		hsz.Add(self.bOpenCurrent)
-		hsz.AddSpacer(20)
+
+		hsz.AddSpacer(self.hspacing)
 		self.bOpenLocal = wx.Button(self, wx.ID_ANY, "Local File", size=BTNSZ)
+		self.bOpenLocal.SetFont(self.ftb)
 		self.bOpenLocal.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBOpenLocal, self.bOpenLocal)
 		hsz.Add(self.bOpenLocal)
-		hsz.AddSpacer(150)
+
+		hsz.AddSpacer(self.hspacing * 4)
 		self.bWebcam = wx.Button(self, wx.ID_ANY, "Webcam", size=BTNSZ)
+		self.bWebcam.SetFont(self.ftb)
 		self.bWebcam.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.bWebcam.Enable(self.mplayer is  not None)
 		self.Bind(wx.EVT_BUTTON, self.onBWebcam, self.bWebcam)
 		hsz.Add(self.bWebcam)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 
 		vsz.Add(hsz)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 		hsz.Add(self.gcPanel)
-		hsz.AddSpacer(10)
+		hsz.AddSpacer(int(self.hspacing/2))
 		hsz.Add(self.slLayer)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 		vsz.Add(hsz)
-		vsz.AddSpacer(10)
+		vsz.AddSpacer(int(self.vspacing/2))
+
+		optvlsizer = wx.BoxSizer(wx.VERTICAL)
+		optvlsizer.AddSpacer(self.vspacing)
+
+		self.cbFollowPrint = wx.CheckBox(self, wx.ID_ANY, "Follow Print")
+		self.cbFollowPrint.SetFont(self.ftb)
+		self.cbFollowPrint.SetValue(self.followprint)
+		self.Bind(wx.EVT_CHECKBOX, self.onCbFollowPrint, self.cbFollowPrint)
+		optvlsizer.Add(self.cbFollowPrint)
+		self.gcPanel.setFollowPrint(self.followprint)
+		optvlsizer.AddSpacer(5)
+
+		self.cbShowMoves = wx.CheckBox(self, wx.ID_ANY, "Show moves")
+		self.cbShowMoves.SetFont(self.ftb)
+		self.cbShowMoves.SetValue(self.showmoves)
+		self.Bind(wx.EVT_CHECKBOX, self.obCbShowMoves, self.cbShowMoves)
+		optvlsizer.Add(self.cbShowMoves)
+		self.gcPanel.setShowMoves(self.showmoves)
+		optvlsizer.AddSpacer(5)
+
+		self.cbShowPrevious = wx.CheckBox(self, wx.ID_ANY, "Show previous layer")
+		self.cbShowPrevious.SetFont(self.ftb)
+		self.cbShowPrevious.SetValue(self.showprevious)
+		self.Bind(wx.EVT_CHECKBOX, self.obCbShowPrevious, self.cbShowPrevious)
+		optvlsizer.Add(self.cbShowPrevious)
+		self.gcPanel.setShowPrevious(self.showprevious)
+		optvlsizer.AddSpacer(5)
+
+		optvmsizer = wx.BoxSizer(wx.VERTICAL)
+		optvmsizer.AddSpacer(self.vspacing)
+
+		self.cbShowRetractions = wx.CheckBox(self, wx.ID_ANY, "Show retractions")
+		self.cbShowRetractions.SetFont(self.ftb)
+		self.cbShowRetractions.SetValue(self.showretractions)
+		self.Bind(wx.EVT_CHECKBOX, self.obCbShowRetractions, self.cbShowRetractions)
+		optvmsizer.Add(self.cbShowRetractions)
+		self.gcPanel.setShowRetractions(self.showretractions)
+		optvmsizer.AddSpacer(5)
+
+		self.cbShowRevRetractions = wx.CheckBox(self, wx.ID_ANY, "Show reverse retractions")
+		self.cbShowRevRetractions.SetFont(self.ftb)
+		self.cbShowRevRetractions.SetValue(self.showrevretractions)
+		self.Bind(wx.EVT_CHECKBOX, self.obCbShowRevRetractions, self.cbShowRevRetractions)
+		optvmsizer.Add(self.cbShowRevRetractions)
+		self.gcPanel.setShowRevRetractions(self.showrevretractions)
+		optvmsizer.AddSpacer(5)
+
+		self.cbShowPrintedOnly = wx.CheckBox(self, wx.ID_ANY, "Show printed only")
+		self.cbShowPrintedOnly.SetFont(self.ftb)
+		self.cbShowPrintedOnly.SetValue(self.showprintedonly)
+		self.Bind(wx.EVT_CHECKBOX, self.obCbShowPrintedOnly, self.cbShowPrintedOnly)
+		optvmsizer.Add(self.cbShowPrintedOnly)
+		self.gcPanel.setShowPrintedOnly(self.showprintedonly)
+		optvmsizer.AddSpacer(10)
+
+		optvrsizer = wx.BoxSizer(wx.VERTICAL)
+		optvrsizer.AddSpacer(self.vspacing*2)
+		hsz = wx.BoxSizer(wx.HORIZONTAL)
+		hsz.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Layer:")
+		st.SetFont(self.ftb)
+		hsz.Add(st)
+		hsz.AddSpacer(10)
+		self.stCurLayer = wx.StaticText(self, wx.ID_ANY, "0/0")
+		self.stCurLayer.SetFont(self.ftb)
+		hsz.Add(self.stCurLayer)
+		optvrsizer.Add(hsz)
+
+		optvmsizer.AddSpacer(10)
 
 		optsizer = wx.BoxSizer(wx.HORIZONTAL)
 		optsizer.AddSpacer(60)
-
-		optvsizer = wx.BoxSizer(wx.VERTICAL)
-		optvsizer.AddSpacer(10)
-
-		self.cbFollowPrint = wx.CheckBox(self, wx.ID_ANY, "Follow Print")
-		self.cbFollowPrint.SetValue(self.followprint)
-		self.Bind(wx.EVT_CHECKBOX, self.onCbFollowPrint, self.cbFollowPrint)
-		optvsizer.Add(self.cbFollowPrint)
-		self.gcPanel.setFollowPrint(self.followprint)
-		optvsizer.AddSpacer(5)
-
-		self.cbShowMoves = wx.CheckBox(self, wx.ID_ANY, "Show moves")
-		self.cbShowMoves.SetValue(self.showmoves)
-		self.Bind(wx.EVT_CHECKBOX, self.obCbShowMoves, self.cbShowMoves)
-		optvsizer.Add(self.cbShowMoves)
-		self.gcPanel.setShowMoves(self.showmoves)
-		optvsizer.AddSpacer(5)
-
-		self.cbShowPrevious = wx.CheckBox(self, wx.ID_ANY, "Show previous layer")
-		self.cbShowPrevious.SetValue(self.showprevious)
-		self.Bind(wx.EVT_CHECKBOX, self.obCbShowPrevious, self.cbShowPrevious)
-		optvsizer.Add(self.cbShowPrevious)
-		self.gcPanel.setShowPrevious(self.showprevious)
-		optvsizer.AddSpacer(5)
-
-		self.cbShowRetractions = wx.CheckBox(self, wx.ID_ANY, "Show retractions")
-		self.cbShowRetractions.SetValue(self.showretractions)
-		self.Bind(wx.EVT_CHECKBOX, self.obCbShowRetractions, self.cbShowRetractions)
-		optvsizer.Add(self.cbShowRetractions)
-		self.gcPanel.setShowRetractions(self.showretractions)
-		optvsizer.AddSpacer(5)
-
-		self.cbShowRevRetractions = wx.CheckBox(self, wx.ID_ANY, "Show reverse retractions")
-		self.cbShowRevRetractions.SetValue(self.showrevretractions)
-		self.Bind(wx.EVT_CHECKBOX, self.obCbShowRevRetractions, self.cbShowRevRetractions)
-		optvsizer.Add(self.cbShowRevRetractions)
-		self.gcPanel.setShowRevRetractions(self.showrevretractions)
-		optvsizer.AddSpacer(5)
-
-		self.cbShowPrintedOnly = wx.CheckBox(self, wx.ID_ANY, "Show printed only")
-		self.cbShowPrintedOnly.SetValue(self.showprintedonly)
-		self.Bind(wx.EVT_CHECKBOX, self.obCbShowPrintedOnly, self.cbShowPrintedOnly)
-		optvsizer.Add(self.cbShowPrintedOnly)
-		self.gcPanel.setShowPrintedOnly(self.showprintedonly)
-		optvsizer.AddSpacer(10)
-
-		optsizer.Add(optvsizer)
-		optsizer.AddSpacer(20)
+		optsizer.Add(optvlsizer)
+		optsizer.AddSpacer(self.hspacing)
+		optsizer.Add(optvmsizer)
+		optsizer.AddSpacer(self.hspacing)
+		optsizer.Add(optvrsizer)
+		optsizer.AddSpacer(self.hspacing)
 
 		vsz.Add(optsizer)
 
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		self.SetSizer(vsz)
 		self.Layout()
@@ -203,6 +249,13 @@ class GcFrame (wx.StaticBox):
 			if self.gcode is not None:
 				l = self.gcode.findLayerByOffset(pos)[0]
 				self.slLayer.SetValue(l)
+				self.UpdateLayerDisplay(l)
+
+	def UpdateLayerDisplay(self, layer, maxLayer=None):
+		if maxLayer is None:
+			maxLayer = self.slLayer.GetRange()[1]
+
+		self.stCurLayer.SetLabel("%s/%d" % (layer, maxLayer))
 
 	def UpdateStatus(self, jmsg):
 		pass
@@ -324,6 +377,7 @@ class GcFrame (wx.StaticBox):
 		self.followprint = False
 		self.cbFollowPrint.SetValue(False)
 		self.gcPanel.setFollowPrint(self.followprint)
+		self.UpdateLayerDisplay(lyr)
 
 	def onCbFollowPrint(self, evt):
 		self.followprint = self.cbFollowPrint.IsChecked()
@@ -359,6 +413,10 @@ class GcFrame (wx.StaticBox):
 			self.slLayer.SetRange(0, nlayers-1)
 			self.slLayer.SetValue(0)
 			self.slLayer.Enable(True)
+			self.UpdateLayerDisplay(0, nlayers-1)
+
+		#self.layerTimes = gcode.getLayerTimes()
+		#self.printTime = gcode.getPrintTime()
 
 	def close(self):
 		if self.prMplayer is not None:

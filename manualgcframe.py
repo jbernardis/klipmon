@@ -14,8 +14,17 @@ class ManualGCodeFrame (wx.StaticBox):
 		self.SetLabel(self.titleText)
 		topBorder, otherBorder = self.GetBordersForSizer()
 
-		self.ftb = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
-		self.ft = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft  = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
 
 		self.parent = parent
 		self.pname = pname
@@ -27,10 +36,10 @@ class ManualGCodeFrame (wx.StaticBox):
 
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 
 		self.tcGCode = wx.TextCtrl(self, wx.ID_ANY, size=(500, -1), style=wx.TE_PROCESS_ENTER)
 		self.tcGCode.SetFont(self.ftb)
@@ -38,15 +47,15 @@ class ManualGCodeFrame (wx.StaticBox):
 		self.tcGCode.Bind(wx.EVT_CHAR, self.OnTextChar)
 		hsz.Add(self.tcGCode)
 
-		hsz.AddSpacer(10)
+		hsz.AddSpacer(int(self.hspacing/2))
 		self.bClear = wx.Button(self, wx.ID_ANY, "X", size=(30, 30))
 		self.Bind(wx.EVT_BUTTON, self.OnBClear, self.bClear)
 		hsz.Add(self.bClear)
 
-		hsz.AddSpacer(20)
+		hsz.AddSpacer(self.hspacing)
 		vsz.Add(hsz, 0, wx.EXPAND)
 
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		self.SetSizer(vsz)
 		self.Layout()

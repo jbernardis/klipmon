@@ -113,16 +113,25 @@ class Heater:
 
 
 class ThermalFrame (wx.StaticBox):
-	def __init__(self, parent, pname, settings):
+	def __init__(self, parent, pname, settings, heaters, sensors):
 		wx.StaticBox.__init__(self, parent, wx.ID_ANY, "")
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
 		self.titleText = "  Thermals  "
 		self.SetLabel(self.titleText)
-		topBorder, otherBorder = self.GetBordersForSizer()
+		self.topBorder, otherBorder = self.GetBordersForSizer()
 
-		self.ftb = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
-		self.ft = wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
+		if wx.DisplaySize()[1] == 1440:
+			ptsz = 12
+			self.vspacing = 20
+			self.hspacing = 20
+		else:
+			ptsz = 9
+			self.vspacing = 10
+			self.hspacing = 10
+
+		self.ftb = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_BOLD, faceName="Arial")
+		self.ft = wx.Font(ptsz, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial")
 
 		self.parent = parent
 		self.pname = pname
@@ -136,25 +145,30 @@ class ThermalFrame (wx.StaticBox):
 		self.heaters = []
 		self.heaterMap = {}
 
-		vsz = wx.BoxSizer(wx.VERTICAL)
-		vsz.AddSpacer(topBorder)
-		vsz.AddSpacer(20)
+		self.SetSensors(sensors)
+		self.SetHeaters(heaters)
 
-		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
-		self.thermList = ThermList(self)
+		self.thermList = ThermList(self, self.heaters, self.sensors)
 		self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnThermalDClick, self.thermList)
-		hsz.Add(self.thermList)
-		hsz.AddSpacer(20)
-		vsz.Add(hsz)
-
-		vsz.AddSpacer(20)
 
 		self.bThermals = wx.Button(self, wx.ID_ANY, "Presets", size=BTNSZ)
 		self.bThermals.SetBackgroundColour(wx.Colour(196, 196, 196))
 		self.Bind(wx.EVT_BUTTON, self.onBThermals, self.bThermals)
+
+		vsz = wx.BoxSizer(wx.VERTICAL)
+		vsz.AddSpacer(self.topBorder)
+		vsz.AddSpacer(self.vspacing)
+
+		hsz = wx.BoxSizer(wx.HORIZONTAL)
+		hsz.AddSpacer(self.hspacing)
+		hsz.Add(self.thermList, 0, wx.EXPAND)
+		hsz.AddSpacer(self.hspacing)
+		vsz.Add(hsz)
+
+		vsz.AddSpacer(self.vspacing)
+
 		vsz.Add(self.bThermals, 0, wx.ALIGN_CENTER_HORIZONTAL)
-		vsz.AddSpacer(20)
+		vsz.AddSpacer(self.vspacing)
 
 		self.SetSizer(vsz)
 		self.Layout()
@@ -191,8 +205,6 @@ class ThermalFrame (wx.StaticBox):
 				h.CachedValues(ivals["result"][n]["temperatures"], ivals["result"][n]["targets"], ivals["result"][n]["powers"])
 			else:
 				print("heater %s not found in cached temperatures" % n)
-
-		self.thermList.LoadData(self.sensors, self.heaters)
 
 	def UpdateStatus(self, jmsg):
 		for s in self.sensors:
@@ -252,18 +264,26 @@ class ThermalFrame (wx.StaticBox):
 
 
 class ThermList (wx.ListCtrl):
-	def __init__(self, parent):
-		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=(470, 145),
+	def __init__(self, parent, heaters, sensors):
+		self.nItems = len(heaters) + len(sensors)
+
+		if wx.DisplaySize()[1] == 1440:
+			self.ptsz = 12
+		else:
+			self.ptsz = 9
+
+		sz = (470, int(self.nItems * (self.ptsz*2.5) + (self.ptsz*2.5)))
+		wx.ListCtrl.__init__(self, parent, wx.ID_ANY, size=sz,
 				style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES | wx.LC_SINGLE_SEL)
 		self.SetBackgroundColour(wx.Colour(128, 128, 128))
 		self.SetForegroundColour(wx.Colour(0, 0, 0))
-		self.SetFont(wx.Font(12, wx.FONTFAMILY_ROMAN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial"))
+
+		self.SetFont(wx.Font(self.ptsz, wx.FONTFAMILY_ROMAN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Arial"))
 		self.moonraker = None
 		self.parent = parent
-		self.sensors = []
-		self.heaters = []
+		self.sensors = sensors
+		self.heaters = heaters
 		self.fnList = []
-		self.nItems = 0
 
 		self.InsertColumn(0, "name")
 		self.SetColumnWidth(0, 230)
@@ -274,20 +294,13 @@ class ThermList (wx.ListCtrl):
 		self.InsertColumn(3, "target")
 		self.SetColumnWidth(3, 80)
 
-		self.SetItemCount(0)
+		self.SetItemCount(self.nItems)
 
 		self.attr1 = wx.ItemAttr()
 		self.attr1.SetBackgroundColour(wx.Colour(8, 149, 235))
 
 		self.attr2 = wx.ItemAttr()
 		self.attr2.SetBackgroundColour(wx.Colour(196, 196, 196))
-
-	def LoadData(self, sensors, heaters):
-		self.sensors = sensors
-		self.heaters = heaters
-
-		self.nItems = len(self.sensors) + len(self.heaters)
-		self.SetItemCount(self.nItems)
 
 	def Ticker(self):
 		self.RefreshItems(0, self.nItems-1)

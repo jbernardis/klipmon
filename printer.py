@@ -14,6 +14,7 @@ from moonraker import Moonraker, MoonrakerException
 from listdlg import ListDlg
 from images import Images
 from jogdlg import JogDlg
+from history import HistoryDlg
 
 (WSDeliveryEvent, EVT_WSDELIVERY) = wx.lib.newevent.NewEvent()
 (WSConnectEvent, EVT_WSCONNECT) = wx.lib.newevent.NewEvent()
@@ -24,6 +25,7 @@ BTNSZ = (120, 50)
 
 MENU_VIEW_LOG = 1100
 MENU_VIEW_GCODE = 1101
+MENU_VIEW_HISTORY = 2201
 MENU_MACROS_BASE = 1200
 MENU_TOOLS_BACKUP_CONFIG = 1300
 MENU_TOOLS_BLTOUCH = 1310
@@ -84,7 +86,7 @@ class PrinterFrame(wx.Frame):
 		self.statFrame = StatFrame(self, self.name, self.settings)
 		self.gcFrame = GcFrame(self, self.name, self.settings)
 		self.flFrame = FlFrame(self, self.name, self.settings)
-		self.thermFrame = ThermalFrame(self, self.name, self.settings)
+		self.thermFrame = ThermalFrame(self, self.name, self.settings, self.heaterList, self.sensorList)
 		self.tempGraph = TempGraph(self, self.name, self.settings)
 		self.fanFrame = FanFrame(self, self.name, self.settings, self.fanList+self.outputList)
 		self.manualFrame = ManualGCodeFrame(self, self.name, self.settings)
@@ -96,6 +98,8 @@ class PrinterFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.OnBLog, id=MENU_VIEW_LOG)
 		menu.Append(MENU_VIEW_GCODE, "GCode", "Hide/Show the GCode Screen")
 		self.Bind(wx.EVT_MENU, self.OnBGCode, id=MENU_VIEW_GCODE)
+		menu.Append(MENU_VIEW_HISTORY, "History", "Show Job History")
+		self.Bind(wx.EVT_MENU, self.OnBHistory, id=MENU_VIEW_HISTORY)
 		menuBar.Append(menu, "View")
 
 		self.macroMap = {}
@@ -142,30 +146,23 @@ class PrinterFrame(wx.Frame):
 		vsz2 = wx.BoxSizer(wx.VERTICAL)
 		vsz2.Add(self.statFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		vsz2.AddSpacer(10)
-		vsz2.Add(self.thermFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
-		vsz2.AddSpacer(10)
-		vsz2.Add(self.tempGraph, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		vsz2.Add(self.flFrame)
 		hsz.Add(vsz2)
 		hsz.AddSpacer(10)
 		vsz2 = wx.BoxSizer(wx.VERTICAL)
-		vsz2.Add(self.gcFrame)
+		vsz2.Add(self.gcFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		vsz2.AddSpacer(10)
-		vsz2.Add(self.fanFrame)
-		vsz2.AddSpacer(10)
-		vsz2.Add(self.manualFrame, 0, wx.EXPAND)
+		vsz2.Add(self.fanFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
 		hsz.Add(vsz2)
 
 		vsz3 = wx.BoxSizer(wx.VERTICAL)
-		vsz3.Add(self.flFrame)
-		vsz3.AddSpacer(340)
+		vsz3.Add(self.thermFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		vsz3.AddSpacer(10)
+		vsz3.Add(self.tempGraph, 0, wx.ALIGN_CENTER_HORIZONTAL)
+		vsz3.AddSpacer(10)
+		vsz3.Add(self.manualFrame, 0, wx.ALIGN_CENTER_HORIZONTAL)
 
 		bszr = wx.BoxSizer(wx.HORIZONTAL)
-		self.bEStop = wx.Button(self, wx.ID_ANY, "ESTOP", size=(64, 64))
-		self.bEStop.SetBackgroundColour(wx.Colour((255, 0, 0)))
-		self.bEStop.SetForegroundColour(wx.Colour((0, 0, 0)))
-		self.bEStop.Enable(False)
-		self.Bind(wx.EVT_BUTTON, self.OnBEStop, self.bEStop)
-		bszr.Add(self.bEStop)
 		vsz3.Add(bszr, 0, wx.ALIGN_RIGHT)
 
 		hsz.AddSpacer(20)
@@ -178,7 +175,6 @@ class PrinterFrame(wx.Frame):
 		self.SetSizer(vsz)
 		self.Layout()
 		self.Fit()
-
 		self.Show()
 
 		self.dlgLog = ListDlg(self, "Log", [], self.HideLog)
@@ -221,6 +217,11 @@ class PrinterFrame(wx.Frame):
 			self.HideGCode()
 		else:
 			self.ShowGCode()
+
+	def OnBHistory(self, evt):
+		dlg = HistoryDlg(self, self.name, self.settings, self.moonraker)
+		rc = dlg.ShowModal()
+		dlg.Destroy()
 
 	def HideJog(self):
 		print("hide jog")
@@ -373,8 +374,6 @@ class PrinterFrame(wx.Frame):
 						self.LogItem(m)
 						self.AddGCode(m)
 
-					self.bEStop.Enable(self.statFrame.GetState() == "printing")
-
 		elif method == "notify_filelist_changed":
 			self.flFrame.RefreshFilesList()
 			if not self.flFrame.HasCurrentFile():
@@ -496,8 +495,8 @@ class PrinterFrame(wx.Frame):
 			self.close(False)
 			return
 
-		self.thermFrame.SetHeaters(self.heaterList)
-		self.thermFrame.SetSensors(self.sensorList)
+		#self.thermFrame.SetHeaters(self.heaterList)
+		#self.thermFrame.SetSensors(self.sensorList)
 		self.thermFrame.SetInitialValues(temps)
 		self.tempGraph.initPlot(self.thermFrame.GetSensorMap(), self.thermFrame.GetHeaterMap())
 
@@ -629,16 +628,6 @@ class PrinterFrame(wx.Frame):
 		self.LogItem("websocket error: %s" % evt.data)
 		if not self.initialized:
 			self.close(False)
-
-	def OnBEStop(self, evt):
-		dlg = wx.MessageDialog(self, "Are you sure you want to Emergency Stop?\nPress \"Yes\" to proceed",
-							   "Emergency Stop Confirmation", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-		rc = dlg.ShowModal()
-		dlg.Destroy()
-		if rc == wx.ID_NO:
-			return
-
-		self.moonraker.EmergencyStop()
 
 	def onClose(self, evt):
 		self.close()
