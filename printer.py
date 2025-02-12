@@ -63,6 +63,7 @@ class PrinterFrame(wx.Frame):
 		self.timer = wx.Timer(self)
 		self.Bind(wx.EVT_TIMER, self.onTimer, self.timer)
 		self.logText = None
+		self.statusErrorCt = 0
 
 		self.ip = self.psettings["ip"]
 		self.port = str(self.psettings["port"])
@@ -224,11 +225,9 @@ class PrinterFrame(wx.Frame):
 		dlg.Destroy()
 
 	def HideJog(self):
-		print("hide jog")
 		self.dlgJog.Hide()
 
 	def ShowJog(self):
-		print("show jog")
 		self.dlgJog.Show()
 
 	def OnBJog(self):
@@ -547,10 +546,13 @@ class PrinterFrame(wx.Frame):
 			js = self.moonraker.PrinterJobStatus()
 
 		except MoonrakerException as e:
-			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
-			dlg.ShowModal()
-			dlg.Destroy()
+			self.frame.LogItem("Moonraker error: %s" % e.message)
+			self.statusErrorCt += 1
+			if self.statusErrorCt >= 5:
+				self.close(False)
 			return
+
+		self.statusErrorCt = 0
 
 		try:
 			active = js["result"]["status"]["virtual_sdcard"]["is_active"]

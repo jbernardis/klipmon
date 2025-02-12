@@ -9,7 +9,8 @@ class App(wx.App):
 	def ClosePrinter(self, rc):
 		if not rc:
 			logtext = self.frame.GetLogText()
-			dlg = wx.MessageDialog(self.frame, logtext, "Failure connecting with printer %s" % self.pname, wx.OK)
+			logmsg = logtext.split("\n")[-1]
+			dlg = wx.MessageDialog(self.frame, logmsg, "Error closing printer %s" % self.pname, wx.OK)
 			dlg.ShowModal()
 			dlg.Destroy()
 

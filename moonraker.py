@@ -446,7 +446,7 @@ class Moonraker:
 			p = self.session.post("http://" + self.ip + ":" + self.port + "/printer/gcode/script?script=" + urllib.parse.quote(gcodecmd), timeout=timeout)
 
 		except requests.exceptions.ReadTimeout:
-			print("read timeout")
+			self.parent.LogItem("Read timeout on GCode (%s)" % gcodecmd)
 			return
 
 		except requests.exceptions.ConnectionError:

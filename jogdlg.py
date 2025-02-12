@@ -234,7 +234,7 @@ class JogDlg(wx.Frame):
 			cmd += "Z"
 
 		try:
-			self.moonraker.SendGCode(cmd, timeout=10)
+			self.moonraker.SendGCode(cmd, timeout=15)
 		except MoonrakerException as e:
 			dlg = wx.MessageDialog(self, e.message, "Moonraker error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()

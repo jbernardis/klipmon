@@ -4,6 +4,7 @@ import subprocess
 
 from moonraker import MoonrakerException
 from gcode import GCode, MOVE_MOVE, MOVE_PRINT, MOVE_EXTRUDE, MOVE_RETRACT
+from statframe import formatTime
 
 MAXZOOM = 10
 ZOOMDELTA = 0.1
@@ -61,6 +62,8 @@ class GcFrame (wx.StaticBox):
 		self.ppos = 0
 		self.progress = 0.0
 		self.gcode = None
+		self.layerTimes = []
+		self.printTime = None
 
 		self.active = False
 		self.activeFn = None
@@ -185,28 +188,52 @@ class GcFrame (wx.StaticBox):
 		optvmsizer.AddSpacer(10)
 
 		optvrsizer = wx.BoxSizer(wx.VERTICAL)
-		optvrsizer.AddSpacer(self.vspacing*2)
+		optvrsizer.AddSpacer(self.vspacing)
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(self.hspacing)
-		st = wx.StaticText(self, wx.ID_ANY, "Layer:")
+		st = wx.StaticText(self, wx.ID_ANY, "Layer:", size=(130, -1), style=wx.ALIGN_RIGHT)
 		st.SetFont(self.ftb)
 		hsz.Add(st)
-		hsz.AddSpacer(10)
+		hsz.AddSpacer(5)
 		self.stCurLayer = wx.StaticText(self, wx.ID_ANY, "0/0")
 		self.stCurLayer.SetFont(self.ftb)
 		hsz.Add(self.stCurLayer)
 		optvrsizer.Add(hsz)
 
-		optvmsizer.AddSpacer(10)
+		optvrsizer.AddSpacer(5)
+		hsz = wx.BoxSizer(wx.HORIZONTAL)
+		hsz.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Total Print Time:", size=(130, -1), style=wx.ALIGN_RIGHT)
+		st.SetFont(self.ftb)
+		hsz.Add(st)
+		hsz.AddSpacer(5)
+		self.stTotalTime = wx.StaticText(self, wx.ID_ANY, "")
+		self.stTotalTime.SetFont(self.ftb)
+		hsz.Add(self.stTotalTime)
+		optvrsizer.Add(hsz)
+
+		optvrsizer.AddSpacer(5)
+		hsz = wx.BoxSizer(wx.HORIZONTAL)
+		hsz.AddSpacer(self.hspacing)
+		st = wx.StaticText(self, wx.ID_ANY, "Layer Print Time:", size=(130, -1), style=wx.ALIGN_RIGHT)
+		st.SetFont(self.ftb)
+		hsz.Add(st)
+		hsz.AddSpacer(5)
+		self.stLayerTime = wx.StaticText(self, wx.ID_ANY, "")
+		self.stLayerTime.SetFont(self.ftb)
+		hsz.Add(self.stLayerTime)
+		optvrsizer.Add(hsz)
+
+		optvrsizer.AddSpacer(10)
 
 		optsizer = wx.BoxSizer(wx.HORIZONTAL)
-		optsizer.AddSpacer(60)
+		optsizer.AddSpacer(int(self.hspacing/2))
 		optsizer.Add(optvlsizer)
-		optsizer.AddSpacer(self.hspacing)
+		optsizer.AddSpacer(int(self.hspacing/2))
 		optsizer.Add(optvmsizer)
-		optsizer.AddSpacer(self.hspacing)
+		optsizer.AddSpacer(int(self.hspacing/2))
 		optsizer.Add(optvrsizer)
-		optsizer.AddSpacer(self.hspacing)
+		optsizer.AddSpacer(int(self.hspacing/2))
 
 		vsz.Add(optsizer)
 
@@ -256,6 +283,8 @@ class GcFrame (wx.StaticBox):
 			maxLayer = self.slLayer.GetRange()[1]
 
 		self.stCurLayer.SetLabel("%s/%d" % (layer, maxLayer))
+		self.stTotalTime.SetLabel(formatTime(self.printTime))
+		self.stLayerTime.SetLabel(formatTime(self.layerTimes[layer]))
 
 	def UpdateStatus(self, jmsg):
 		pass
@@ -408,15 +437,17 @@ class GcFrame (wx.StaticBox):
 		self.gcPanel.loadGCode(gcode, 0, 1, followable)
 		nlayers = gcode.layerCount()
 		if nlayers == 0:
+			self.layerTimes = []
+			self.printTime = 0
 			self.slLayer.Enable(False)
 		else:
+			self.layerTimes = gcode.getLayerTimes()
+			self.printTime = gcode.getPrintTime()
 			self.slLayer.SetRange(0, nlayers-1)
 			self.slLayer.SetValue(0)
 			self.slLayer.Enable(True)
 			self.UpdateLayerDisplay(0, nlayers-1)
 
-		#self.layerTimes = gcode.getLayerTimes()
-		#self.printTime = gcode.getPrintTime()
 
 	def close(self):
 		if self.prMplayer is not None:
@@ -786,12 +817,21 @@ class GcPanel (wx.Panel):
 		if background:
 			return self.bkgPenMap[mtype]
 
-		if not self.followable or self.printPosition < offset:
-			if self.followprint and self.showprintedonly:
+		if not self.followable or not self.followprint:
+			#  either it's not a followable onject, or it is and follow is not checked
+			#  so we print with the colored pen
+			return self.penMap[mtype][0]
+
+		#  so here we know we're following
+		if self.printPosition < offset:
+			#  we haven't reached this point in the print yet
+			#  so we're either showing nothing if printedonly is checkled or we show colored pen
+			if self.showprintedonly:
 				return self.penInvisible
 			else:
 				return self.penMap[mtype][0]
 		else:
+			#  we've reached this point in the print - so show the dim pen
 			return self.penMap[mtype][1]
 
 	def transform(self, ptx, pty):
